@@ -31,7 +31,43 @@
                     url: "mapbox://mapbox.us_census_states_2015"
                 });
             });
-        }
+        },
+
+        initializeChloroPleth(data){
+
+            var maxValue = d3.max(data, function(d){
+                return d.DP03_0099PE;
+            });
+            console.log(maxValue);
+            // borrowed from https://www.mapbox.com/mapbox-gl-js/example/data-join/
+            // First value is the default, used where the is no data
+            var stops = [["0", "rgba(100,100,100,1)"]];
+
+            // Calculate color for each state based on the unemployment rate
+            data.forEach(function(row) {
+                var green = Math.round(255 - ((row.DP03_0099PE / maxValue) * 255) );
+                var color = "rgba(" + 0 + ", " + green + ", " + 0 + ", 1)";
+                console.log(color);
+                var stateToString = row.state > 9 ? row.state.toString() : '0' + row.state.toString();
+                stops.push([stateToString, color]);
+            });
+            console.log(stops);
+
+            // Add layer from the vector tile source with data-driven style
+            mapView.map.addLayer({
+                "id": "states-join",
+                "type": "fill",
+                "source": "states",
+                "source-layer": 'states',
+                "paint": {
+                    "fill-color": {
+                        "property": "STATEFP",
+                        "type": "categorical",
+                        "stops": stops
+                    }
+                }
+            }, 'waterway-label');
+                }
     }; // end mapView
 
     const controller = {
@@ -47,6 +83,7 @@
             });
             Promise.all([this.promises.stateData, this.promises.mapLoaded]).then(values => {
                 console.log('ready to go!', values);
+                mapView.initializeChloroPleth(values[0]);
             });
         },
         getACSData(name, url){
