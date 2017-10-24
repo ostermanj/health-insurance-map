@@ -55,9 +55,12 @@
             var minValue = d3.min(data, function(d){
                 return d.DP03_0099PE;
             });
-            console.log(maxValue);
+
+            console.log(minValue);
 
             var scale = d3.scaleLinear().domain([minValue,maxValue]).range([0,1]);
+
+            window.scale = scale;
 
             //var colorScale = d3.scaleSequential(d3.interpolateYlOrBrG);
             //console.log(d3.interpolateYlOrBrG(0.5));
@@ -88,7 +91,46 @@
                     }
                 }
             }, 'water');
-                }
+
+            // LEGEND
+
+            var scheme = d3.schemeYlOrRd[6]
+
+            var legend = d3.select('#map')
+                .append('div')
+                .attr('class','map-overlay')
+                .attr('id','legend');
+
+            legend
+                .append('p')
+                .text('Percent without health insurance');
+
+            var legendDivs = legend
+                .selectAll('legendDiv')
+                .data(scheme)
+                .enter().append('div');
+
+            legendDivs.append('span')
+                .attr('class','legend-key')
+                .style('background-color', function(d){
+                    return d;
+                });
+
+            legendDivs.append('span')
+                .html(function(d, i, array){
+                    var interval = ( maxValue - minValue ) / array.length;
+                    return d3.format(".1f")(( minValue + interval * i )) + '&ndash;' + d3.format(".1f")(( minValue + interval * (i + 1) ));
+                });
+
+            legend
+                .append('p')
+                .text('Source: ACS 2011–2015 5-year estimates');
+
+
+
+
+
+        }
     }; // end mapView
 
     const controller = {
