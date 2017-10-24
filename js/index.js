@@ -6,7 +6,7 @@
 
     const mapView = {
         
-        initializeMap(){
+        initializeMap(resolve){
             this.map = new mapboxgl.Map({
                 container: 'map',
                 style: 'mapbox://styles/mapbox/light-v9',
@@ -15,11 +15,21 @@
                 hash: true
             });
 
-            this.map.on('load', function(){
-                controller.promises.mapLoaded = new Promise(function(resolve,reject){
-                    resolve(true);
+            function checkDataLoaded(){
+                if ( mapView.map.getSource('states') ){ // if addSource below has taken effect
+                    console.log('render', mapView.map.getSource('states'));
+                    resolve(true); // resolve the promise
+                    mapView.map.off('render', checkDataLoaded); // and turn off the listener for render
+                }
+            }
+
+            this.map.on('render', checkDataLoaded) // render event is fired often, including when addSource below takes effect
+
+            this.map.on('load', () => { // takes some time to take effect. will trigger 'render' event when it does
+                this.map.addSource("states", {
+                    type: "vector",
+                    url: "mapbox://mapbox.us_census_states_2015"
                 });
-                console.log(controller.promises);
             });
         }
     }; // end mapView
@@ -28,8 +38,16 @@
         
         init(){
             this.promises = {};
-            mapView.initializeMap();
             this.getACSData('stateData','https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0099PE,NAME&for=state:*&key=')
+            this.promises.stateData.then(values => {
+                console.log(values);
+            });
+            this.promises.mapLoaded = new Promise((resolve, reject) => {
+                mapView.initializeMap(resolve);
+            });
+            Promise.all([this.promises.stateData, this.promises.mapLoaded]).then(values => {
+                console.log('ready to go!', values);
+            });
         },
         getACSData(name, url){
             this.promises[name] = new Promise((resolve,reject) => {
