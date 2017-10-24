@@ -11,9 +11,11 @@
                 container: 'map',
                 style: 'mapbox://styles/mapbox/light-v9',
                 zoom: 3.9,
-                center: [-96.2,38.28],
-                hash: true
+                center: [-96.2,38.28]
+                
             });
+
+            window.map = this.map; // for access in console
 
             function checkDataLoaded(){
                 if ( mapView.map.getSource('states') ){ // if addSource below has taken effect
@@ -34,6 +36,14 @@
         },
 
         initializeChloroPleth(data){
+
+            var roadLayers = this.map.getStyle().layers.filter(function(each){
+                return each['source-layer'] === 'road';
+            });
+
+            roadLayers.forEach(each => {
+                this.map.setPaintProperty(each.id, 'line-opacity', 0.2 )
+            });
 
             var maxValue = d3.max(data, function(d){
                 return d.DP03_0099PE;
@@ -66,7 +76,7 @@
                         "stops": stops
                     }
                 }
-            }, 'waterway-label');
+            }, 'water');
                 }
     }; // end mapView
 
