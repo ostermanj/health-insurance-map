@@ -37,6 +37,8 @@
 
         initializeChloroPleth(data){
 
+            
+            // edit road layers
             var roadLayers = this.map.getStyle().layers.filter(function(each){
                 return each['source-layer'] === 'road';
             });
@@ -45,18 +47,27 @@
                 this.map.setPaintProperty(each.id, 'line-opacity', 0.2 )
             });
 
+            // END edit road layers
+
             var maxValue = d3.max(data, function(d){
                 return d.DP03_0099PE;
             });
+            var minValue = d3.min(data, function(d){
+                return d.DP03_0099PE;
+            });
             console.log(maxValue);
+
+            var scale = d3.scaleLinear().domain([minValue,maxValue]).range([0,1]);
+
+            //var colorScale = d3.scaleSequential(d3.interpolateYlOrBrG);
+            //console.log(d3.interpolateYlOrBrG(0.5));
             // borrowed from https://www.mapbox.com/mapbox-gl-js/example/data-join/
             // First value is the default, used where the is no data
-            var stops = [["0", "rgba(100,100,100,1)"]];
+            var stops = [["0", "rgb(100,100,100)"]];
 
             // Calculate color for each state based on the unemployment rate
             data.forEach(function(row) {
-                var green = Math.round(255 - ((row.DP03_0099PE / maxValue) * 255) );
-                var color = "rgba(" + 0 + ", " + green + ", " + 0 + ", 1)";
+                var color = d3.interpolateYlOrBr(scale(row.DP03_0099PE));
                 console.log(color);
                 var stateToString = row.state > 9 ? row.state.toString() : '0' + row.state.toString();
                 stops.push([stateToString, color]);
