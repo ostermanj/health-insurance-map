@@ -37,98 +37,100 @@
 
         initializeChloroPleth(data){
 
+            editRoadLayers.call(this);
+            createStops.call(this);
+            addChloroLayer.call(this);
+            addLegend.call(this);
+
             
-            // edit road layers
-            var roadLayers = this.map.getStyle().layers.filter(function(each){
-                return each['source-layer'] === 'road';
-            });
+            function editRoadLayers() {
+                var roadLayers = this.map.getStyle().layers.filter(function(each){
+                    return each['source-layer'] === 'road';
+                });
+                roadLayers.forEach(each => {
+                    this.map.setPaintProperty(each.id, 'line-opacity', 0.2 )
+                });
+            }
 
-            roadLayers.forEach(each => {
-                this.map.setPaintProperty(each.id, 'line-opacity', 0.2 )
-            });
+            function createStops() {
 
-            // END edit road layers
+                this.maxValue = d3.max(data, function(d){
+                    return d.DP03_0099PE;
+                });
+                this.minValue = d3.min(data, function(d){
+                    return d.DP03_0099PE;
+                });
 
-            var maxValue = d3.max(data, function(d){
-                return d.DP03_0099PE;
-            });
-            var minValue = d3.min(data, function(d){
-                return d.DP03_0099PE;
-            });
+                var scale = d3.scaleLinear().domain([this.minValue,this.maxValue]).range([0,1]);
 
-            console.log(minValue);
+                window.scale = scale;
 
-            var scale = d3.scaleLinear().domain([minValue,maxValue]).range([0,1]);
+                //var colorScale = d3.scaleSequential(d3.interpolateYlOrBrG);
+                //console.log(d3.interpolateYlOrBrG(0.5));
+                // borrowed from https://www.mapbox.com/mapbox-gl-js/example/data-join/
+                // First value is the default, used where the is no data
+                this.stops = [["0", "rgb(100,100,100)"]];
 
-            window.scale = scale;
+                // Calculate color for each state based on the unemployment rate
+                data.forEach((row) => {
+                    var color = d3.interpolateYlOrBr(scale(row.DP03_0099PE));
+                    console.log(color);
+                    var stateToString = row.state > 9 ? row.state.toString() : '0' + row.state.toString();
+                    this.stops.push([stateToString, color]);
+                });
+            }
 
-            //var colorScale = d3.scaleSequential(d3.interpolateYlOrBrG);
-            //console.log(d3.interpolateYlOrBrG(0.5));
-            // borrowed from https://www.mapbox.com/mapbox-gl-js/example/data-join/
-            // First value is the default, used where the is no data
-            var stops = [["0", "rgb(100,100,100)"]];
+            function addChloroLayer() {
 
-            // Calculate color for each state based on the unemployment rate
-            data.forEach(function(row) {
-                var color = d3.interpolateYlOrBr(scale(row.DP03_0099PE));
-                console.log(color);
-                var stateToString = row.state > 9 ? row.state.toString() : '0' + row.state.toString();
-                stops.push([stateToString, color]);
-            });
-            console.log(stops);
-
-            // Add layer from the vector tile source with data-driven style
-            mapView.map.addLayer({
-                "id": "states-join",
-                "type": "fill",
-                "source": "states",
-                "source-layer": 'states',
-                "paint": {
-                    "fill-color": {
-                        "property": "STATEFP",
-                        "type": "categorical",
-                        "stops": stops
+                mapView.map.addLayer({
+                    "id": "states-join",
+                    "type": "fill",
+                    "source": "states",
+                    "source-layer": 'states',
+                    "paint": {
+                        "fill-color": {
+                            "property": "STATEFP",
+                            "type": "categorical",
+                            "stops": this.stops
+                        }
                     }
-                }
-            }, 'water');
+                }, 'water');
+            }
 
-            // LEGEND
+            function addLegend() {
+                var scheme = d3.schemeYlOrRd[6]
 
-            var scheme = d3.schemeYlOrRd[6]
+                var legend = d3.select('#map')
+                    .append('div')
+                    .attr('class','map-overlay')
+                    .attr('id','legend');
 
-            var legend = d3.select('#map')
-                .append('div')
-                .attr('class','map-overlay')
-                .attr('id','legend');
+                legend
+                    .append('p')
+                    .text('Percent without health insurance');
 
-            legend
-                .append('p')
-                .text('Percent without health insurance');
+                var legendDivs = legend
+                    .selectAll('legendDiv')
+                    .data(scheme)
+                    .enter().append('div');
 
-            var legendDivs = legend
-                .selectAll('legendDiv')
-                .data(scheme)
-                .enter().append('div');
+                legendDivs.append('span')
+                    .attr('class','legend-key')
+                    .style('background-color', function(d){
+                        return d;
+                    });
 
-            legendDivs.append('span')
-                .attr('class','legend-key')
-                .style('background-color', function(d){
-                    return d;
-                });
+                legendDivs.append('span')
+                    .html((d, i, array) => {
+                        var interval = ( this.maxValue - this.minValue ) / array.length;
+                        return d3.format(".1f")((this.minValue + interval * i )) + '&ndash;' + d3.format(".1f")(( this.minValue + interval * (i + 1) ));
+                    });
 
-            legendDivs.append('span')
-                .html(function(d, i, array){
-                    var interval = ( maxValue - minValue ) / array.length;
-                    return d3.format(".1f")(( minValue + interval * i )) + '&ndash;' + d3.format(".1f")(( minValue + interval * (i + 1) ));
-                });
-
-            legend
-                .append('p')
-                .text('Source: ACS 2011–2015 5-year estimates');
-
-
-
-
+                legend
+                    .append('p')
+                    .text('Source: ACS 2011–2015 5-year estimates');
+                
+            }
 
         }
     }; // end mapView
