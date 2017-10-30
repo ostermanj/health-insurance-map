@@ -3,18 +3,24 @@
     "use strict";
     mapboxgl.accessToken = 'pk.eyJ1Ijoib3N0ZXJtYW5qIiwiYSI6ImNpdnU5dHVndjA2eDYyb3A3Nng1cGJ3ZXoifQ.Xo_k-kzGfYX_Yo_RDcHDBg';
     const censusKey = '3a82a0bf1219fb2fb0962763bb1582c5951f8566',
-          originalCenter = [-96.2,38.28],
-          originalZoom = 3.9;
-
+          maxBounds = [
+            [-125.94823224526017, 23.14551812884227], // 60.516 deg wide by 26.908 deg high
+            [-65.43255594715713, 50.05360024146327]
+          ];
+    var originalZoom,
+        originalCenter,
+        mapColorBuckets = 10; // even number. number of colors in chloropleth; the lengend will show half as
+                              // many buckets, each range of colors
+        
     const mapView = {
         
         initializeMap(resolve){
             this.map = new mapboxgl.Map({
                 container: 'map',
                 style: 'mapbox://styles/mapbox/light-v9',
-                zoom: originalZoom,
-                center: originalCenter
-                
+               // zoom: originalZoom,
+               // center: originalCenter,
+                maxBounds: maxBounds                
             });
             window.mapView = this;
             // disable map rotation using right click + drag
@@ -25,7 +31,7 @@
 
 
             function checkDataLoaded(){
-                if ( mapView.map.getSource('states') ){ // if addSource below has taken effect
+                if ( mapView.map.getSource('states') && mapView.map.getSource('counties') ){ // if addSource below has taken effect
                     console.log('render', mapView.map.getSource('states'));
                     resolve(true); // resolve the promise
                     mapView.map.off('render', checkDataLoaded); // and turn off the listener for render
@@ -40,16 +46,28 @@
                     url: "mapbox://mapbox.us_census_states_2015"
 
                 });
+                this.map.addSource('counties', {
+                    "type": "vector",
+                    "url": "mapbox://mapbox.82pkq93d"
+                });
+
+                this.map.fitBounds(maxBounds, {
+                    linear: true,
+                    padding: {top:10,right:150,bottom:10,left:10}
+                });
+                originalZoom = this.map.getZoom();
+                originalCenter = this.map.getCenter()
             });
         },
 
-        initializeChloroPleth(data){
+        initializeChloroPleth(data){ // data = array. 0: stateData, 1: countyData; 2: mapLoaded boolean (true)
+            console.log(data);
 
             editRoadLayers.call(this);
             createStops.call(this);
             addChloroLayer.call(this);
             addLegend.call(this);
-           // getStateBounds.call(this);
+
 
 
             
@@ -64,35 +82,91 @@
 
             function createStops() {
 
-                this.maxValue = d3.max(data, function(d){
-                    return d.DP03_0099PE;
+                this.maxCountyValue = d3.max(data[1], function(d){
+                    return +d.DP03_0099PE;
                 });
-                this.minValue = d3.min(data, function(d){
-                    return d.DP03_0099PE;
+                this.minCountyValue = d3.min(data[1], function(d){
+                    return +d.DP03_0099PE;
+                });
+                console.log(this.minCountyValue);
+                console.log(this.maxCountyValue);
+                this.maxStateValue = d3.max(data[0], function(d){
+                    return +d.DP03_0099PE;
+                });
+                this.minStateValue = d3.min(data[0], function(d){
+                    return +d.DP03_0099PE;
                 });
 
-                var scale = d3.scaleLinear().domain([this.minValue,this.maxValue]).range([0,1]);
+                console.log(this.minStateValue);
+                console.log(this.maxStateValue)
 
+                var countyDomain = data[1].map(function(row){
+                  return row.DP03_0099PE;
+                });
+
+                var stateDomain = data[0].map(function(row){
+                  return row.DP03_0099PE;
+                });
+                console.log(stateDomain);
+                this.mapRange = returnRange(mapColorBuckets - 1);
+                this.legendRange = [];
+                this.mapRange.forEach((value,i, array) => {
+                  if ( i % 2 === 0 || i === array.length - 1) {
+                    this.legendRange.push(value)
+                  }
+                });
+
+                console.log(this.mapRange[-0]);
+                console.log(this.legendRange);
+                function returnRange(n){
+                  var array = [];
+                  for ( let i = 0; i <= n; i++ ){
+                    array.push( Math.round( (10 / (n) * i / 10) * 100 ) / 100 );
+                  }
+                  return array;
+                }
+
+             //   var scaleState = d3.scalePow().exponent(0.1).domain([this.minStateValue,this.maxStateValue]).range([0,1]);
+             //   var scaleCounty = d3.scalePow().exponent(0.1).domain([this.minCountyValue,this.maxCountyValue]).range([0,1]);
+
+                this.scaleState = d3.scaleQuantile().domain(stateDomain).range(this.mapRange);
+                this.scaleCounty = d3.scaleQuantile().domain(countyDomain).range(this.mapRange);
+
+                window.scaleState = this.scaleState;
+                
 
                 //var colorScale = d3.scaleSequential(d3.interpolateYlOrBrG);
                 //console.log(d3.interpolateYlOrBrG(0.5));
                 // borrowed from https://www.mapbox.com/mapbox-gl-js/example/data-join/
                 // First value is the default, used where the is no data
-                this.stops = [["0", "rgb(100,100,100)"]];
+                this.stateStops = [["0", "rgb(100,100,100)"]];
+                this.countyStops = {
+                  string: [["0", "rgb(100,100,100)"]],
+                  numeric: [[0, "rgb(100,100,100)"]]
+                };
 
                 // Calculate color for each state based on the unemployment rate
-                data.forEach((row) => {
-                    var color = d3.interpolateYlOrBr(scale(row.DP03_0099PE));
-                    console.log(color);
-                    var stateToString = row.state > 9 ? row.state.toString() : '0' + row.state.toString();
-                    this.stops.push([stateToString, color]);
+                data[0].forEach((row) => { // states
+                    var color = d3.interpolateYlOrBr(this.scaleState(row.DP03_0099PE));
+                    this.stateStops.push([row.state, color]);
                 });
+                data[1].forEach((row) => { // counties
+                    var color = d3.interpolateYlOrBr(this.scaleCounty(row.DP03_0099PE));
+                      if ( row.state[0] === '0'){
+                        this.countyStops.string.push([(row.state + row.county), color]);
+                      } else {
+                        this.countyStops.numeric.push([+(row.state + row.county), color]);
+                      }
+                });
+                console.log('stateStops',this.stateStops);
+                console.log('countyStops',this.countyStops);
+
             }
 
             function addChloroLayer() {
 
                 function checkLayerLoaded(){
-                    if ( mapView.map.getLayer('states-join') && mapView.map.getLayer('states-join-hover') ){ // if addLayer below has taken effect
+                    if ( mapView.map.getLayer('states-join') && mapView.map.getLayer('states-join-hover') && mapView.map.getLayer('counties') ){ // if addLayer below has taken effect
                         mapView.map.off('render', checkLayerLoaded); //  turn off the listener for render
                         mapView.setMouseEvents();
                     }
@@ -100,17 +174,22 @@
 
                 this.map.on('render', checkLayerLoaded)
 
+                this.activeFill = {
+                      "property": "STATEFP",
+                      "type": "categorical",
+                      "stops": this.stateStops
+                    };
+
+                this.inactiveFill = "#959595";
+              
+
                 mapView.map.addLayer({
                     "id": "states-join",
                     "type": "fill",
                     "source": "states",
                     "source-layer": 'states',
                     "paint": {
-                        "fill-color": {
-                            "property": "STATEFP",
-                            "type": "categorical",
-                            "stops": this.stops
-                        }
+                      "fill-color": this.activeFill
                     }
                 }, 'water');
 
@@ -127,35 +206,57 @@
                     "filter": ["==", "name", ""]
                 });
 
+                mapView.map.addLayer({
+                  "id": "counties",
+                  "type": "fill",
+                  "source": "counties",
+                  "source-layer": "original",
+                  "paint": {
+                      "fill-outline-color": "rgba(255,255,255,0.5)",
+                      "fill-color": {
+                            "property": "FIPS",
+                            "type": "categorical",
+                            "stops": this.countyStops.string
+                        }
+                  },
+                  "filter": ["==", "FIPS", ""]
+                  
+              }, 'water')
+
             }
 
             function addLegend() {
-                var scheme = d3.schemeYlOrRd[6]
-
-                var legend = d3.select('#map')
+               
+                this.legend = d3.select('#map')
                     .append('div')
                     .attr('class','map-overlay')
                     .attr('id','legend');
 
-                legend
+                var legend = this.legend;
+
+                legend   
                     .append('p')
                     .text('Percent without health insurance');
 
                 var legendDivs = legend
                     .selectAll('legendDiv')
-                    .data(scheme)
+                    .data(this.legendRange.slice(0,-1))
                     .enter().append('div');
 
                 legendDivs.append('span')
                     .attr('class','legend-key')
-                    .style('background-color', function(d){
-                        return d;
+                    .attr('style', (d,i) => {
+                      console.log(i, this.legendRange);
+                        return `background: ${d3.interpolateYlOrBr(d)}; /* For browsers that do not support gradients */
+                                background: -webkit-linear-gradient(${d3.interpolateYlOrBr(d)}, ${d3.interpolateYlOrBr(this.legendRange[i + 1])}); /* For Safari 5.1 to 6.0 */
+                                background: -o-linear-gradient(${d3.interpolateYlOrBr(d)}, ${d3.interpolateYlOrBr(this.legendRange[i + 1])}); /* For Opera 11.1 to 12.0 */
+                                background: -moz-linear-gradient(${d3.interpolateYlOrBr(d)}, ${d3.interpolateYlOrBr(this.legendRange[i + 1])}); /* For Firefox 3.6 to 15 */
+                                background: linear-gradient(to right, ${d3.interpolateYlOrBr(d)} , ${d3.interpolateYlOrBr(this.legendRange[i + 1])});`;
                     });
 
-                legendDivs.append('span')
-                    .html((d, i, array) => {
-                        var interval = ( this.maxValue - this.minValue ) / array.length;
-                        return d3.format(".1f")((this.minValue + interval * i )) + '&ndash;' + d3.format(".1f")(( this.minValue + interval * (i + 1) ));
+                this.legendSpans = legendDivs.append('span')
+                    .html((d, i) => {
+                        return d3.format(',.1f')(this.scaleState.invertExtent(d)[0]) + '&ndash;' + d3.format(',.1f')(this.scaleState.invertExtent(this.mapRange[i * 2 + 1])[1]);
                     });
 
                 legend
@@ -166,6 +267,22 @@
 
         },
         setMouseEvents(){
+
+            function getCountyRange(statefp) {
+              console.log(statefp);
+              if (statefp[0] === '0'){
+                return { // county FIPS less than 10,000 start with zeroes and are stored as strings in source data
+                  min: '0' + ( +statefp.slice(0,2) * 1000 ),
+                  max: '0' + ( +statefp.slice(0,2) * 1000 + 999 )
+                }
+              } else {
+                return { // others are stored as numbers
+                  min:  +statefp.slice(0,2) * 1000,
+                  max:  +statefp.slice(0,2) * 1000 + 999
+                }
+              }
+            }
+
             this.map.on('mousemove', 'states-join', e => {
                 this.map.setFilter("states-join-hover", ["==", "STATEFP", e.features[0].properties.STATEFP]);  
             });
@@ -176,18 +293,47 @@
                
                 if ( controller.controlState.getState().zoomedStateFP !== e.features[0].properties.STATEFP ){
                     controller.controlState.setState('zoomedStateFP', e.features[0].properties.STATEFP);
-                    
+                    if ( e.features[0].properties.STATEFP[0] === '0' ){
+                      this.map.setPaintProperty('counties', 'fill-color', {
+                            "property": "FIPS",
+                            "type": "categorical",
+                            "stops": this.countyStops.string
+                      });
+                    } else {
+                      this.map.setPaintProperty('counties', 'fill-color', {
+                            "property": "FIPS",
+                            "type": "categorical",
+                            "stops": this.countyStops.numeric
+                      });
+                    }
+                    this.map.setPaintProperty('states-join', 'fill-color', this.inactiveFill);
                     this.map.fitBounds(stateBounds[e.features[0].properties.STATEFP], {
-                        //linear: true,
-                        padding: {top:10,right:150,bottom:10,left:10}
+                        
+                        padding: {top: 5, right: 10, bottom: 10, left: 10}
                     });
+                    this.map.setFilter("counties", ["all",
+                      [">", "FIPS", getCountyRange(e.features[0].properties.STATEFP).min],
+                      ["<=", "FIPS", getCountyRange(e.features[0].properties.STATEFP).max]
+                    ]);
+                    console.log(getCountyRange(e.features[0].properties.STATEFP));
+
+                    this.legendSpans.html((d, i) => {
+                        return d3.format(',.1f')(this.scaleCounty.invertExtent(d)[0]) + '&ndash;' + d3.format(',.1f')(this.scaleCounty.invertExtent(this.mapRange[i * 2 + 1])[1]);
+                    });
+                   
                 } else {
                     controller.controlState.setState('zoomedStateFP', null);
-                    this.map.flyTo({
-                        center: originalCenter,
-                        zoom: originalZoom
+                    this.map.setFilter("counties", ["==", "FIPS", ""]);
+                    this.map.flyTo({center: originalCenter, zoom: originalZoom});
+                    this.legendSpans.html((d, i) => {
+                        return d3.format(',.1f')(this.scaleState.invertExtent(d)[0]) + '&ndash;' + d3.format(',.1f')(this.scaleState.invertExtent(this.mapRange[i * 2 + 1])[1]);
                     });
+                    this.map.setPaintProperty('states-join', 'fill-color', this.activeFill);
                 }
+
+            });        
+            this.map.on('click','counties', e => {
+              console.log(e.features[0].properties);
             });
         }
     }; // end mapView
@@ -196,30 +342,32 @@
         controlState: StateModule(),
         init(){
             this.promises = {};
-            this.getACSData('stateData','https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0099PE,NAME&for=state:*&key=')
+            this.getACSData('stateData','https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0099PE,NAME&for=state:*&key=');
+            this.getACSData('countyData','https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0099PE,NAME&for=county:*&key=');
             this.promises.stateData.then(values => {
                 console.log(values);
             });
             this.promises.mapLoaded = new Promise((resolve, reject) => {
                 mapView.initializeMap(resolve);
             });
-            Promise.all([this.promises.stateData, this.promises.mapLoaded]).then(values => {
+            Promise.all([this.promises.stateData, this.promises.countyData, this.promises.mapLoaded,]).then(values => {
                 console.log('ready to go!', values);
-                mapView.initializeChloroPleth(values[0]);
+                mapView.initializeChloroPleth(values); // 0 being stateData; 1 being county data
             });
+           
         },
         getACSData(name, url){
             this.promises[name] = new Promise((resolve,reject) => {
                 d3.json(url + censusKey, (error,data) => { 
                     console.log(data); // array of arrays, with array 0 being the field names
                     if (error) throw error;
-                    resolve(this.returnKeyValues(data));
+                    resolve(this.returnKeyValues(data, null, false));
                 });
             });
         },
-        returnKeyValues(values, rollup){ 
+        returnKeyValues(values, rollup, coerce){ // coerce = BOOL coerce to num or not 
             return values.slice(1).map(row => row.reduce(function(acc, cur, i) { // 1. params: total, currentValue, currentIndex[, arr]
-              acc[values[0][i]] = isNaN(+cur) ? cur : +cur; // 3. // acc is an object , key is corresponding value from row 0, value is current value of array
+              acc[values[0][i]] = coerce === true ? isNaN(+cur) ? cur : +cur : cur; // 3. // acc is an object , key is corresponding value from row 0, value is current value of array
               if ( rollup ) {
                 acc.rollup = rollup;
               }
