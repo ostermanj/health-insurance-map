@@ -28,10 +28,34 @@
 
     const mapView = {
         maps: [],
-        initializeMaps(mapOptions){
-            window.maps = this.maps;
-            mapOptions.forEach((options, i) => {
-                this.maps[i] = new mapboxgl.Map(options);
+        initializeMap(options, i, resolve){
+            this.maps[i] = new mapboxgl.Map(options);  
+            this.maps[i].originalOptions = options;
+            this.maps[i].on('load',() => {
+                resolve(true);
+            });        
+        },
+        sharedSetup(map){
+            console.log(map);
+            map.dragRotate.disable();
+            map.touchZoomRotate.disableRotation();
+
+            function checkDataLoaded(){
+                if ( map.getSource('states') && map.getSource('counties') ){ // if addSource below has taken effect
+                    console.log('render', map.getSource('states'));
+                    map.off('render', checkDataLoaded); // and turn off the listener for render
+                }
+            }
+
+            map.on('render', checkDataLoaded); // render event is fired often, including when addSource below takes effect
+
+            map.addSource("states", {
+                "type": "vector",
+                "url": "mapbox://mapbox.us_census_states_2015"
+                });
+            map.addSource('counties', {
+                "type": "vector",
+                "url": "mapbox://mapbox.82pkq93d"
             });
         }
     };
@@ -40,15 +64,20 @@
     const controller = {
         controlState: StateModule(),
         init(){
-            this.promises = {};
-            this.promises.mapLoaded = new Promise((resolve, reject) => {
-                mapView.initializeMaps(mapOptions);
+            this.promises = {maps:[]};
+            mapOptions.forEach((options, i) =>{
+                this.promises.maps[i] = new Promise((resolve,reject) => {
+                    mapView.initializeMap(options, i, resolve);
+                });
             });
             this.getACSData('stateData','https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0099PE,NAME&for=state:*&key=');
             this.getACSData('countyData','https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0099PE,NAME&for=county:*&key=');
- /*           Promise.all([this.promises.stateData, this.promises.countyData, this.promises.mapLoaded,]).then(values => {
+            Promise.all([this.promises.stateData, this.promises.countyData, Promise.all(this.promises.maps)]).then(values => {
                 console.log('ready to go!', values);
-            });*/
+                mapView.maps.forEach((each) => {
+                    mapView.sharedSetup(each);
+                });
+            });
            
         },
         getACSData(name, url){
