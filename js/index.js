@@ -13,6 +13,8 @@
             hawaii: stateBounds["15"] 
           };
 
+    const mapColorBuckets = 10;
+
     const mapOptions = [
         {
             container: 'map-0',
@@ -26,6 +28,45 @@
         }
     ];
 
+    const mbHelper = {
+        promises: {},
+        addSourceAndLayers(sourceOptions,layerOptionsArray){ // this = map
+            var sourceName = sourceOptions.name;
+            mbHelper.promises[sourceOptions.name] = new Promise((resolve,reject) => {
+                delete sourceOptions.name;
+                function checkDataLoaded(){
+                    if ( this.getSource(sourceName) ){ // if addSource below has taken effect
+                        resolve(true);
+                        this.off('render', checkDataLoaded); // and turn off the listener for render
+                    }
+                }
+                this.on('render', checkDataLoaded);
+                this.addSource(sourceName, sourceOptions);
+            });
+            var layerPromises = [];
+            return mbHelper.promises[sourceName].then(() => { // GET THIS TO RETURN A PROMISE.ALL FOR THE LAYERS
+                layerOptionsArray.forEach((each) => {
+                    layerPromises.push(
+                        new Promise((resolve,reject) => {
+                            var beforeLayer = each.beforeLayer ? each.beforeLayer : '';
+                            delete each.beforeLayer;
+                            each.source = sourceName;
+                            function checkLayerLoaded(){
+                                if ( this.getLayer(each.id) ){ // if addLayer below has taken effect
+                                    resolve(true);
+                                    this.off('render', checkLayerLoaded); // and turn off the listener for render
+                                }
+                            }
+                            this.on('render', checkLayerLoaded);
+                            this.addLayer(each, beforeLayer);
+                        })
+                    );
+                });
+                return Promise.all(layerPromises);
+            });
+        }
+    }
+
     const mapView = {
         maps: [],
         initializeMap(options, i, resolve){
@@ -35,28 +76,107 @@
                 resolve(true);
             });        
         },
-        sharedSetup(map){
-            console.log(map);
-            map.dragRotate.disable();
-            map.touchZoomRotate.disableRotation();
+        setup(values){
+            var stateData = values[0][0],
+                countyData = values[0][1];
+            createStops();
+            mapView.maps.forEach(each => {
+                this.sharedMapSetup(each);
+            });
 
-            function checkDataLoaded(){
-                if ( map.getSource('states') && map.getSource('counties') ){ // if addSource below has taken effect
-                    console.log('render', map.getSource('states'));
-                    map.off('render', checkDataLoaded); // and turn off the listener for render
+            function createStops() {
+                mapView.scaleState = d3.scaleQuantile().domain(stateData.map(function(row){
+                  return row.DP03_0099PE;
+                })).range(returnRange(mapColorBuckets));
+                mapView.scaleCounty = d3.scaleQuantile().domain(countyData.map(function(row){
+                  return row.DP03_0099PE;
+                })).range(returnRange(mapColorBuckets));
+                window.scaleState = mapView.scaleState;
+
+                mapView.stateStops = [["0", "rgb(100,100,100)"]];
+                mapView.countyStops = {
+                  string: [["0", "rgb(100,100,100)"]],
+                  numeric: [[0, "rgb(100,100,100)"]]
+                };
+
+                stateData.forEach((row) => { // states
+                    var color = d3.interpolateYlOrBr(mapView.scaleState(row.DP03_0099PE));
+                    mapView.stateStops.push([row.state, color]);
+                });
+                countyData.forEach((row) => { // counties
+                    var color = d3.interpolateYlOrBr(mapView.scaleCounty(row.DP03_0099PE));
+                      if ( row.state[0] === '0'){
+                        mapView.countyStops.string.push([(row.state + row.county), color]);
+                      } else {
+                        mapView.countyStops.numeric.push([+(row.state + row.county), color]);
+                      }
+                });
+                
+                function returnRange(n){ // creates a discrete set of stops between 0 and 1 (inclusive) based
+                                         // on the number of colorBuckets specified up top. used as the output
+                                         // range in the d3.scale function, which is then interpolated on the
+                                         // color scale
+                  var array = [];
+                  for ( let i = 0; i <= n; i++ ){
+                    array.push( Math.round( (10 / (n) * i / 10) * 100 ) / 100 );
+                  }
+                  return array;
                 }
             }
+        },
+        sharedMapSetup(map){
+            map.dragRotate.disable();
+            map.touchZoomRotate.disableRotation();
+            editRoadLayers();
+        
+            mbHelper.addSourceAndLayers.call(map,
+                { // source
+                    "type": "vector",
+                    "url": "mapbox://mapbox.us_census_states_2015",
+                    "name": "states"
+                }, [ // layers
+                    {
+                        "id": "states-join",
+                        "type": "fill",
+                        "source-layer": 'states',
+                        "paint": {
+                          "fill-color": 'transparent'
+                        },
+                        "beforeLayer": "water"
+                    },
+                    {
+                        "id": "states-join-hover",
+                        "type": "line",
+                        "source-layer": 'states',
+                        "paint": {
+                            "line-color": '#4D90FE',
+                            "line-width": 4,
+                            "line-blur": 2
+                        },
+                        "filter": ["==", "name", ""]
+                }]).then((values) => {
+                    addChloroLayer()
+                }); 
 
-            map.on('render', checkDataLoaded); // render event is fired often, including when addSource below takes effect
+            function addChloroLayer(){
+                mapView.activeFill = {
+                      "property": "STATEFP",
+                      "type": "categorical",
+                      "stops": mapView.stateStops
+                    };
+                mapView.inactiveFill = "#959595";
 
-            map.addSource("states", {
-                "type": "vector",
-                "url": "mapbox://mapbox.us_census_states_2015"
+                map.setPaintProperty('states-join', 'fill-color', mapView.activeFill);
+            }
+
+            function editRoadLayers() {
+                var roadLayers = map.getStyle().layers.filter(function(each){
+                    return each['source-layer'] === 'road';
                 });
-            map.addSource('counties', {
-                "type": "vector",
-                "url": "mapbox://mapbox.82pkq93d"
-            });
+                roadLayers.forEach(each => {
+                    map.setPaintProperty(each.id, 'line-opacity', 0.2 )
+                });
+            }
         }
     };
 
@@ -64,7 +184,7 @@
     const controller = {
         controlState: StateModule(),
         init(){
-            this.promises = {maps:[]};
+            this.promises = {maps:[],data:[]};
             mapOptions.forEach((options, i) =>{
                 this.promises.maps[i] = new Promise((resolve,reject) => {
                     mapView.initializeMap(options, i, resolve);
@@ -72,22 +192,22 @@
             });
             this.getACSData('stateData','https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0099PE,NAME&for=state:*&key=');
             this.getACSData('countyData','https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0099PE,NAME&for=county:*&key=');
-            Promise.all([this.promises.stateData, this.promises.countyData, Promise.all(this.promises.maps)]).then(values => {
-                console.log('ready to go!', values);
-                mapView.maps.forEach((each) => {
-                    mapView.sharedSetup(each);
+            Promise.all([Promise.all(this.promises.data),
+                         Promise.all(this.promises.maps)])
+                .then((values)=>{
+                    mapView.setup(values);
                 });
-            });
-           
+             
         },
         getACSData(name, url){
-            this.promises[name] = new Promise((resolve,reject) => {
-                d3.json(url + censusKey, (error,data) => { 
-                    console.log(data); // array of arrays, with array 0 being the field names
-                    if (error) throw error;
-                    resolve(this.returnKeyValues(data, null, false));
-                });
-            });
+            this.promises.data.push(
+                new Promise((resolve,reject) => {
+                    d3.json(url + censusKey, (error,data) => { 
+                        if (error) throw error;
+                        resolve(this.returnKeyValues(data, null, false));
+                    });
+                })
+            ); 
         },
         returnKeyValues(values, rollup, coerce){ // coerce = BOOL coerce to num or not 
             return values.slice(1).map(row => row.reduce(function(acc, cur, i) { // 1. params: total, currentValue, currentIndex[, arr]
