@@ -119,18 +119,27 @@
         setup(values){
             var stateData = values[0][0],
                 countyData = values[0][1];
-            createStops();
+            createStops.call(this);
+            createLegend.call(this);
             mapView.maps.forEach(each => {
                 this.sharedMapSetup(each);
             });
 
             function createStops() {
+                this.mapRange = returnRange(mapColorBuckets - 1);
+                this.legendRange = [];
+                this.mapRange.forEach((value,i, array) => {
+                  if ( i % 2 === 0 || i === array.length - 1) {
+                    this.legendRange.push(value)
+                  }
+                });
+
                 mapView.scaleState = d3.scaleQuantile().domain(stateData.map(function(row){
                   return row.DP03_0099PE;
-                })).range(returnRange(mapColorBuckets));
+                })).range(this.mapRange);
                 mapView.scaleCounty = d3.scaleQuantile().domain(countyData.map(function(row){
                   return row.DP03_0099PE;
-                })).range(returnRange(mapColorBuckets));
+                })).range(this.mapRange);
                 window.scaleState = mapView.scaleState;
 
                 mapView.stateStops = [["0", "rgb(100,100,100)"]];
@@ -162,6 +171,43 @@
                   }
                   return array;
                 }
+            }
+
+            function createLegend(){
+                this.legend = d3.select('#sidebar')
+                    .append('div')
+                    .attr('id','legend');
+
+                var legend = this.legend;
+
+                legend   
+                    .append('p')
+                    .text('Percent without health insurance');
+
+                var legendDivs = legend
+                    .selectAll('legendDiv')
+                    .data(this.legendRange.slice(0,-1))
+                    .enter().append('div');
+
+                legendDivs.append('span')
+                    .attr('class','legend-key')
+                    .attr('style', (d,i) => {
+                      console.log(i, this.legendRange);
+                        return `background: ${d3.interpolateYlOrBr(d)}; /* For browsers that do not support gradients */
+                                background: -webkit-linear-gradient(${d3.interpolateYlOrBr(d)}, ${d3.interpolateYlOrBr(this.legendRange[i + 1])}); /* For Safari 5.1 to 6.0 */
+                                background: -o-linear-gradient(${d3.interpolateYlOrBr(d)}, ${d3.interpolateYlOrBr(this.legendRange[i + 1])}); /* For Opera 11.1 to 12.0 */
+                                background: -moz-linear-gradient(${d3.interpolateYlOrBr(d)}, ${d3.interpolateYlOrBr(this.legendRange[i + 1])}); /* For Firefox 3.6 to 15 */
+                                background: linear-gradient(to right, ${d3.interpolateYlOrBr(d)} , ${d3.interpolateYlOrBr(this.legendRange[i + 1])});`;
+                    });
+
+                this.legendSpans = legendDivs.append('span')
+                    .html((d, i) => {
+                        return d3.format(',.1f')(this.scaleState.invertExtent(d)[0]) + '&ndash;' + d3.format(',.1f')(this.scaleState.invertExtent(this.mapRange[i * 2 + 1])[1]);
+                    });
+
+                legend
+                    .append('p')
+                    .text('Source: ACS 2011–2015 5-year estimates');
             }
         },
         sharedMapSetup(map){
