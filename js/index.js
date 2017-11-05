@@ -241,19 +241,119 @@
                             "line-blur": 2
                         },
                         "filter": ["==", "name", ""]
-                }]).then((values) => {
-                    addChloroLayer()
-                }); 
+                    }
+                ]).then(() => {
+                    mbHelper.addSourceAndLayers.call(map,
+                        { // source
+                            "type": "vector",
+                            "url": "mapbox://mapbox.us_census_states_2015",
+                            "name": "states"
+                        }, [ // layers
+                                    {
+                              "id": "counties",
+                              "type": "fill",
+                              "source": "counties",
+                              "source-layer": "states",
+                              "paint": {
+                                  "fill-outline-color": "rgba(255,255,255,0.5)",
+                                  "fill-color": "transparent"
+                              },
+                              "beforeLayer": "water",
+                              "filter": ["==", "FIPS", ""]
+                          }
+                        ])
 
+
+                    
+
+
+
+
+                    addChloroLayer();
+                    setMouseEvents();
+
+                }); 
+            function setMouseEvents(){
+
+                function getCountyRange(statefp) {
+                  if (statefp[0] === '0'){
+                    return { // county FIPS less than 10,000 start with zeroes and are stored as strings in source data
+                      min: '0' + ( +statefp.slice(0,2) * 1000 ),
+                      max: '0' + ( +statefp.slice(0,2) * 1000 + 999 )
+                    }
+                  } else {
+                    return { // others are stored as numbers
+                      min:  +statefp.slice(0,2) * 1000,
+                      max:  +statefp.slice(0,2) * 1000 + 999
+                    }
+                  }
+                }
+                map.on('mousemove', 'states-join', e => {
+                    map.setFilter("states-join-hover", ["==", "STATEFP", e.features[0].properties.STATEFP]);  
+                });
+                map.on('mouseleave', 'states-join', e => {
+                    map.setFilter("states-join-hover", ["==", "STATEFP", ""]);  
+                });
+                map.on('click', 'states-join', e => {
+               
+                if ( controller.controlState.getState().zoomedStateFP !== e.features[0].properties.STATEFP ){
+                    controller.controlState.setState('zoomedStateFP', e.features[0].properties.STATEFP);
+                    if ( e.features[0].properties.STATEFP[0] === '0' ){
+                        console.log(mapView.countyStops.string)
+                      map.setPaintProperty('counties', 'fill-color', {
+                            "property": "FIPS",
+                            "type": "categorical",
+                            "stops": mapView.countyStops.string
+                      });
+                    } else {
+                        console.log(mapView.countyStops.numeric)
+                      map.setPaintProperty('counties', 'fill-color', {
+                            "property": "FIPS",
+                            "type": "categorical",
+                            "stops": mapView.countyStops.numeric
+                      });
+                    }
+                    map.setPaintProperty('states-join', 'fill-color', mapView.inactiveFill);
+                    map.fitBounds(stateBounds[e.features[0].properties.STATEFP], {
+                        
+                        padding: {top: 5, right: 10, bottom: 10, left: 10}
+                    });
+                    map.setFilter("counties", ["all",
+                      [">", "FIPS", getCountyRange(e.features[0].properties.STATEFP).min],
+                      ["<=", "FIPS", getCountyRange(e.features[0].properties.STATEFP).max]
+                    ]);
+                    console.log(getCountyRange(e.features[0].properties.STATEFP));
+
+                    mapView.legendSpans.html((d, i) => {
+                        return d3.format(',.1f')(mapView.scaleCounty.invertExtent(d)[0]) + '&ndash;' + d3.format(',.1f')(mapView.scaleCounty.invertExtent(mapView.mapRange[i * 2 + 1])[1]);
+                    });
+                   
+                } else {
+                    controller.controlState.setState('zoomedStateFP', null);
+                    map.setFilter("counties", ["==", "FIPS", ""]);
+                    map.flyTo({center: originalCenter, zoom: originalZoom});
+                    mapView.legendSpans.html((d, i) => {
+                        return d3.format(',.1f')(mapView.scaleState.invertExtent(d)[0]) + '&ndash;' + d3.format(',.1f')(mapView.scaleState.invertExtent(mapRange[i * 2 + 1])[1]);
+                    });
+                    map.setPaintProperty('states-join', 'fill-color', mapView.activeFill);
+                }
+
+            }); 
+            }
             function addChloroLayer(){
-                mapView.activeFill = {
+                mapView.stateFillActive = {
                       "property": "STATEFP",
                       "type": "categorical",
                       "stops": mapView.stateStops
                     };
-                mapView.inactiveFill = "#959595";
+                mapView.stateFillInActive = "#959595";
+                mapView.countyFill = {
+                            "property": "FIPS",
+                            "type": "categorical",
+                            "stops": mapView.countyStops.string
+                        };
 
-                map.setPaintProperty('states-join', 'fill-color', mapView.activeFill);
+                map.setPaintProperty('states-join', 'fill-color', mapView.stateFillActive);
             }
 
             function editRoadLayers() {
