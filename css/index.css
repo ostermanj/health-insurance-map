@@ -1,9 +1,24 @@
 * {
-    box-sizing: border-box;
     margin:0;
     padding:0;
+    box-sizing: border-box;
+
 }
-#map-0 {
+
+div {
+    /*background-color: rgba(0,0,255,0.1);*/
+
+}
+
+#map-view {
+}
+ #map-view-wrapper{
+    width:850px;
+    flex-grow: 1;
+
+}
+
+.map-container, #content-wrapper {
     position: absolute;
     top:0;
     right: 0;
@@ -11,23 +26,58 @@
     left: 0;
  }
 
- #map-1 {
-    width: 500px;
-    height: 300px;
-    background-color: magenta;
- }
-
-#map-wrapper {
-    width: 100%;
-    padding-bottom: 56.36%;
-    position: relative;
-
-
+#map-0-wrapper {
+    padding-bottom: 54.9561%;
 }
 
-#sidebar {
+#lower-map-wrapper {
+    padding-bottom: 26%;
+   
+}
+
+#lower-map-wrapper .map-wrapper {
+    padding-bottom: 26.5%;
+}
+
+.map-wrapper {
     width: 100%;
-    /*max-width: 400px;*/
+    position: relative;
+    
+}
+#map-1-wrapper, #map-2-wrapper {
+    width: calc(50% - 4px);
+}
+
+#map-1, #map-2 {
+  border-top: 8px solid white;
+  border-top: 8px solid white;
+  
+}
+
+.flex {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.flex-column {
+    flex-direction: column;
+}
+
+.grow-1 {
+    flex-grow: 1;
+}
+
+.space-between {
+    justify-content: space-between;
+}
+
+.no-wrap {
+    flex-wrap: nowrap;
+}
+#sidebar {
+    max-width: 425px;
+    min-width: 320px;
+    flex-grow: 100;
 }
 
 .map-overlay {
@@ -52,4 +102,12 @@
     width: 20px;
     height: 10px;
     margin-right: 5px;
+}
+
+.relative {
+    position: relative;
+}
+
+.mapboxgl-ctrl {
+    display:none !important;
 }

@@ -4,15 +4,32 @@
     <meta charset="UTF-8">
     <title>ACS Map</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.10.0/d3.min.js"></script>
-    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script> <!-- https://github.com/d3/d3-scale-chromatic -->
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script><!-- https://github.com/d3/d3-scale-chromatic -->
     <script src='https://api.mapbox.com/mapbox-gl-js/v0.41.0/mapbox-gl.js'></script>
     <link href='https://api.mapbox.com/mapbox-gl-js/v0.41.0/mapbox-gl.css' rel='stylesheet' />
     <link href='css/index.css' rel='stylesheet' />
 </head>
 <body>
-
-    <div id="map-0"></div> 
-    <div id="map-1"></div>    
+<div id="content-wrapper" class="flex no-wrap">
+    <div id="sidebar">
+        Sidebar
+    </div>
+    <div id="map-view-wrapper" class="relative">
+        <div id="map-view" class="flex flex-column grow-1">
+            <div id="map-0-wrapper" class="map-wrapper lower48">
+                <div id="map-0" class="map-container"></div>
+            </div>
+            <div id="lower-map-wrapper" class="flex space-between">
+                <div id="map-1-wrapper" class="map-wrapper alaska">
+                    <div id="map-1" class="map-container"></div>
+                </div>
+                <div id="map-2-wrapper" class="map-wrapper hawaii">
+                    <div id="map-2" class="map-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 
 <script src="js/index.js"></script>
