@@ -246,14 +246,14 @@
                     mbHelper.addSourceAndLayers.call(map,
                         { // source
                             "type": "vector",
-                            "url": "mapbox://mapbox.us_census_states_2015",
-                            "name": "states"
+                            "url": "mapbox://mapbox.82pkq93d",
+                            "name": "counties"
                         }, [ // layers
                                     {
                               "id": "counties",
                               "type": "fill",
                               "source": "counties",
-                              "source-layer": "states",
+                              "source-layer": "original",
                               "paint": {
                                   "fill-outline-color": "rgba(255,255,255,0.5)",
                                   "fill-color": "transparent"
@@ -261,7 +261,13 @@
                               "beforeLayer": "water",
                               "filter": ["==", "FIPS", ""]
                           }
-                        ])
+                        ]).then(() => {
+                            addChloroLayer();
+                            setMouseEvents();
+                        });
+                    });
+                    
+
 
 
                     
@@ -269,10 +275,8 @@
 
 
 
-                    addChloroLayer();
-                    setMouseEvents();
 
-                }); 
+              
             function setMouseEvents(){
 
                 function getCountyRange(statefp) {
