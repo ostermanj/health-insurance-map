@@ -12,7 +12,13 @@
 <body>
 <div id="content-wrapper" class="flex no-wrap">
     <div id="sidebar">
-        <div id="state-status">
+        <div id="sidebar-top" class="sidebar-section margins">
+        </div>
+        <div class="sidebar-section margins">
+            <label id="state-label" for="state-selector">Select state</label>
+            <select id="state-selector">
+                <option selected disabled hidden value="null">&mdash; select a state &mdash;</option>
+            </select>
         </div>
     </div>
     <div id="map-view-wrapper" class="relative">
