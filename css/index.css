@@ -83,6 +83,12 @@ div {
     position: relative;
 }
 
+#state-status {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+}
+
 .map-overlay {
     position: absolute;
     bottom: 0;

@@ -42,7 +42,6 @@
                 function checkDataLoaded(){
                     if ( this.getSource(sourceName) ){ // if addSource below has taken effect
                         resolve(true);
-                        console.log('source added', this.getSource(sourceName));
                         this.off('render', checkDataLoaded); // and turn off the listener for render
                     }
                 }
@@ -297,9 +296,9 @@
                     }
                   }
                 }
-                function zoomendCenter(){
-                    map.off('zoomend', zoomendCenter);
-                    map.flyTo({center: map.originalCenter});
+                function zoomendCenter(evt){
+                    maps[evt.target.index].off('zoomend', zoomendCenter);
+                    maps[evt.target.index].flyTo({center: maps[evt.target.index].originalCenter});
                 }
                 map.on('mousemove', 'states-join', e => {
                     map.setFilter("states-join-hover", ["==", "STATEFP", e.features[0].properties.STATEFP]);  
@@ -308,59 +307,82 @@
                     map.setFilter("states-join-hover", ["==", "STATEFP", ""]);  
                 });
                 map.on('click', 'states-join', e => {
-               console.log(map.getCenter());
-               console.log(map.getBounds());
-                if ( controller.controlState.getState().zoomedStateFP !== e.features[0].properties.STATEFP ){
-                    controller.controlState.setState('zoomedStateFP', e.features[0].properties.STATEFP);
-                    if ( e.features[0].properties.STATEFP[0] === '0' ){
-                      map.setPaintProperty('counties', 'fill-color', {
-                            "property": "FIPS",
-                            "type": "categorical",
-                            "stops": mapView.countyStops.string
-                      });
-                    } else {
-                      map.setPaintProperty('counties', 'fill-color', {
-                            "property": "FIPS",
-                            "type": "categorical",
-                            "stops": mapView.countyStops.numeric
-                      });
-                    }
-                    maps.forEach(function(each) {
-                        each.setPaintProperty('states-join', 'fill-color', mapView.stateFillInactive);
-                    });
-                    if ( map.index > 0 ){
-                        map.on('zoomend', zoomendCenter);
-                    }
-                    var wrapperPadding = map.index === 0 ? 10 : 0;
-                    map.fitBounds(stateBounds[e.features[0].properties.STATEFP], {
-                        padding: wrapperPadding
-                    });
-                    map.setFilter("counties", ["all",
-                      [">", "FIPS", getCountyRange(e.features[0].properties.STATEFP).min],
-                      ["<=", "FIPS", getCountyRange(e.features[0].properties.STATEFP).max]
-                    ]);
-                    if ( map.getZoom() < 2 ) {
-                        map.setZoom(2);
-                    }
-                    mapView.legendSpans.html((d, i) => {
-                        return d3.format(',.1f')(mapView.scaleCounty.invertExtent(d)[0]) + '&ndash;' + d3.format(',.1f')(mapView.scaleCounty.invertExtent(mapView.mapRange[i * 2 + 1])[1]);
-                    });
-                   
-                } else {
-                    controller.controlState.setState('zoomedStateFP', null);
-                   
-                    map.setFilter("counties", ["==", "FIPS", ""]);
-                    map.on('zoomend', zoomendCenter);
-                    map.fitBounds(map.originalOptions.maxBounds);
-                    mapView.legendSpans.html((d, i) => {
-                        return d3.format(',.1f')(mapView.scaleState.invertExtent(d)[0]) + '&ndash;' + d3.format(',.1f')(mapView.scaleState.invertExtent(mapView.mapRange[i * 2 + 1])[1]);
-                    });
-                    maps.forEach(function(each){
-                        each.setPaintProperty('states-join', 'fill-color', mapView.stateFillActive);
-                    });
-                }
 
-            }); 
+                    var activeMap = controller.controlState.getState().activeMap; // undefine
+                    if ( !controller.controlState.getState().activeStateFP ){
+                        showCountyLegend(); 
+                    }
+                    if ( controller.controlState.getState().activeStateFP !== e.features[0].properties.STATEFP ){
+                        if ( activeMap !== undefined && map.index !== activeMap ){ // ie user clicks on map that is not already active
+                            zoomMapBackOut(mapView.maps[activeMap]);
+                        }
+                        zoomMapToState();
+                    } else { // ie user click on already active state
+                        zoomMapBackOut(map);
+                        controller.controlState.setState('activeMap', undefined);
+                        controller.controlState.setState('activeStateFP', null);
+                        showStateLegend();
+                    }
+
+                    
+                    function zoomMapToState(){
+                        controller.controlState.setState('activeStateFP', e.features[0].properties.STATEFP);
+                        controller.controlState.setState('activeMap', map.index);
+                        if ( e.features[0].properties.STATEFP[0] === '0' ){
+                          map.setPaintProperty('counties', 'fill-color', {
+                                "property": "FIPS",
+                                "type": "categorical",
+                                "stops": mapView.countyStops.string
+                          });
+                        } else {
+                          map.setPaintProperty('counties', 'fill-color', {
+                                "property": "FIPS",
+                                "type": "categorical",
+                                "stops": mapView.countyStops.numeric
+                          });
+                        }
+                        maps.forEach(function(each) {
+                            each.setPaintProperty('states-join', 'fill-color', mapView.stateFillInactive);
+                        });
+                        if ( map.index > 0 ){
+                            map.on('zoomend', zoomendCenter);
+                        }
+                        var wrapperPadding = map.index === 0 ? 10 : 0;
+                        map.fitBounds(stateBounds[e.features[0].properties.STATEFP], {
+                            padding: wrapperPadding
+                        });
+                        map.setFilter("counties", ["all",
+                          [">", "FIPS", getCountyRange(e.features[0].properties.STATEFP).min],
+                          ["<=", "FIPS", getCountyRange(e.features[0].properties.STATEFP).max]
+                        ]);
+                        if ( map.getZoom() < 2 ) {
+                          map.setZoom(2);
+                        }                    
+                    }
+                    
+                    function showCountyLegend(){
+                        mapView.legendSpans.html((d, i) => {
+                            return d3.format(',.1f')(mapView.scaleCounty.invertExtent(d)[0]) + '&ndash;' + d3.format(',.1f')(mapView.scaleCounty.invertExtent(mapView.mapRange[i * 2 + 1])[1]);
+                        });
+                    }
+
+                    function showStateLegend(){
+                        mapView.legendSpans.html((d, i) => {
+                            return d3.format(',.1f')(mapView.scaleState.invertExtent(d)[0]) + '&ndash;' + d3.format(',.1f')(mapView.scaleState.invertExtent(mapView.mapRange[i * 2 + 1])[1]);
+                        });
+                    }
+
+                    function zoomMapBackOut(the_map){
+                        the_map.setFilter("counties", ["==", "FIPS", ""]);
+                        if ( the_map.index > 0 ){
+                            the_map.on('zoomend', zoomendCenter);
+                        }
+                        the_map.fitBounds(the_map.originalOptions.maxBounds);
+                        maps.forEach(function(each){
+                            each.setPaintProperty('states-join', 'fill-color', mapView.stateFillActive);
+                        });
+                    } 
+                }); 
             }
             function addChloroLayer(){
                 mapView.stateFillActive = {
@@ -368,7 +390,7 @@
                       "type": "categorical",
                       "stops": mapView.stateStops
                     };
-                mapView.  stateFillInactive = "#959595";
+                mapView.stateFillInactive = "#959595";
                 mapView.countyFill = {
                             "property": "FIPS",
                             "type": "categorical",
@@ -464,6 +486,7 @@
         function _setState(key,value) { 
                                    
             state[key] = value;
+            _logState();
         }
 
         return {
