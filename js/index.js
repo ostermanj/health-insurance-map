@@ -78,6 +78,10 @@
     const mapView = {
         maps: [],
         init(){
+            setSubs([
+                ['activeStateFP', mapView.zoomInMapHandler],
+                ['activeMap', mapView.zoomInMapHandler]
+            ]);
             this.wrapper = document.getElementById('map-view-wrapper');
             this.el = document.getElementById('map-view');
             this.checkMapViewAspect();
@@ -276,36 +280,9 @@
                             setMouseEvents();
                         });
                     });
-                    
 
-
-
-                    
-
-
-
-
-
-              
             function setMouseEvents(){
 
-                function getCountyRange(statefp) {
-                  if (statefp[0] === '0'){
-                    return { // county FIPS less than 10,000 start with zeroes and are stored as strings in source data
-                      min: '0' + ( +statefp.slice(0,2) * 1000 ),
-                      max: '0' + ( +statefp.slice(0,2) * 1000 + 999 )
-                    }
-                  } else {
-                    return { // others are stored as numbers
-                      min:  +statefp.slice(0,2) * 1000,
-                      max:  +statefp.slice(0,2) * 1000 + 999
-                    }
-                  }
-                }
-                function zoomendCenter(evt){
-                    maps[evt.target.index].off('zoomend', zoomendCenter);
-                    maps[evt.target.index].flyTo({center: maps[evt.target.index].originalCenter});
-                }
                 map.on('mousemove', 'states-join', e => {
                     map.setFilter("states-join-hover", ["==", "STATEFP", e.features[0].properties.STATEFP]);  
                 });
@@ -313,81 +290,13 @@
                     map.setFilter("states-join-hover", ["==", "STATEFP", ""]);  
                 });
                 map.on('click', 'states-join', e => {
-console.log(e);
-                    var activeMap = controller.controlState.getState().activeMap; // undefine
-                    if ( !controller.controlState.getState().activeStateFP ){
-                        showCountyLegend(); 
-                    }
-                    if ( controller.controlState.getState().activeStateFP !== e.features[0].properties.STATEFP ){
-                        if ( activeMap !== undefined && map.index !== activeMap ){ // ie user clicks on map that is not already active
-                            zoomMapBackOut(mapView.maps[activeMap]);
-                        }
-                        zoomMapToState();
-                    } else { // ie user click on already active state
-                        zoomMapBackOut(map);
-                        controller.controlState.setState('activeMap', undefined);
-                        controller.controlState.setState('activeStateFP', null);
-                        showStateLegend();
-                    }
-
                     
-                    function zoomMapToState(){
-                        controller.controlState.setState('activeStateFP', e.features[0].properties.STATEFP);
-                        controller.controlState.setState('activeMap', map.index);
-                        if ( e.features[0].properties.STATEFP[0] === '0' ){
-                          map.setPaintProperty('counties', 'fill-color', {
-                                "property": "FIPS",
-                                "type": "categorical",
-                                "stops": mapView.countyStops.string
-                          });
-                        } else {
-                          map.setPaintProperty('counties', 'fill-color', {
-                                "property": "FIPS",
-                                "type": "categorical",
-                                "stops": mapView.countyStops.numeric
-                          });
-                        }
-                        maps.forEach(function(each) {
-                            each.setPaintProperty('states-join', 'fill-color', mapView.stateFillInactive);
-                        });
-                        if ( map.index > 0 ){
-                            map.on('zoomend', zoomendCenter);
-                        }
-                        var wrapperPadding = map.index === 0 ? 10 : 0;
-                        map.fitBounds(stateBounds[e.features[0].properties.STATEFP], {
-                            padding: wrapperPadding
-                        });
-                        map.setFilter("counties", ["all",
-                          [">", "FIPS", getCountyRange(e.features[0].properties.STATEFP).min],
-                          ["<=", "FIPS", getCountyRange(e.features[0].properties.STATEFP).max]
-                        ]);
-                        if ( map.getZoom() < 2 ) {
-                          map.setZoom(2);
-                        }                    
+                    setState('activeMap', map.index); // stateModule only publishes if state is new, no need for if statement
+                    if ( getState('activeStateFP') !== e.features[0].properties.STATEFP ) { // if statement needed here b/c click on already active state requires special response
+                        setState('activeStateFP', e.features[0].properties.STATEFP );
+                    } else { // click on already active/zoomed US state
+                        setState('activeStateFP', null );
                     }
-                    
-                    function showCountyLegend(){
-                        mapView.legendSpans.html((d, i) => {
-                            return d3.format(',.1f')(mapView.scaleCounty.invertExtent(d)[0]) + '&ndash;' + d3.format(',.1f')(mapView.scaleCounty.invertExtent(mapView.mapRange[i * 2 + 1])[1]);
-                        });
-                    }
-
-                    function showStateLegend(){
-                        mapView.legendSpans.html((d, i) => {
-                            return d3.format(',.1f')(mapView.scaleState.invertExtent(d)[0]) + '&ndash;' + d3.format(',.1f')(mapView.scaleState.invertExtent(mapView.mapRange[i * 2 + 1])[1]);
-                        });
-                    }
-
-                    function zoomMapBackOut(the_map){
-                        the_map.setFilter("counties", ["==", "FIPS", ""]);
-                        if ( the_map.index > 0 ){
-                            the_map.on('zoomend', zoomendCenter);
-                        }
-                        the_map.fitBounds(the_map.getMaxBounds());
-                        maps.forEach(function(each){
-                            each.setPaintProperty('states-join', 'fill-color', mapView.stateFillActive);
-                        });
-                    } 
                 }); 
             }
             function addChloroLayer(){
@@ -414,6 +323,82 @@ console.log(e);
                     map.setPaintProperty(each.id, 'line-opacity', 0.2 )
                 });
             }
+        },
+        zoomInMapHandler(msg,data){ // msg = 'activeStateFP'; data = activeStateFP OR 'activeMap'; activeMap
+            
+            if ( msg === 'activeStateFP' ) {
+                if ( data === null || data === 'null' ){
+                    zoomMapBackOut(getState('activeMap'));
+                } else {
+                    zoomMapToState();
+                }
+            }
+
+            if ( msg === 'activeMap' && getPreviousState('activeMap') !== undefined ){
+                zoomMapBackOut(getPreviousState('activeMap'));
+            }
+
+            function zoomendCenter(){ // `this` = the map
+                this.off('zoomend', zoomendCenter);
+                this.flyTo({center: this.originalCenter});
+            }
+            function zoomMapBackOut(index){
+                var map = mapView.maps[index];
+                map.setFilter("counties", ["==", "FIPS", ""]);
+                if ( map.index > 0 ){
+                    map.on('zoomend', zoomendCenter);
+                }
+                map.fitBounds(map.getMaxBounds());
+                mapView.maps.forEach(function(each){
+                    each.setPaintProperty('states-join', 'fill-color', mapView.stateFillActive);
+                });
+            }
+            function zoomMapToState(){
+                var map = mapView.maps[getState('activeMap')];
+                if ( data[0] === '0' ){ //data is string; if it starts with 0 . . . 
+                  map.setPaintProperty('counties', 'fill-color', {
+                        "property": "FIPS",
+                        "type": "categorical",
+                        "stops": mapView.countyStops.string
+                  });
+                } else {
+                  map.setPaintProperty('counties', 'fill-color', {
+                        "property": "FIPS",
+                        "type": "categorical",
+                        "stops": mapView.countyStops.numeric
+                  });
+                }
+                mapView.maps.forEach(function(each) {
+                    each.setPaintProperty('states-join', 'fill-color', mapView.stateFillInactive);
+                });
+                if ( map.index > 0 ){
+                    map.on('zoomend', zoomendCenter);
+                }
+                var wrapperPadding = map.index === 0 ? 10 : 0;
+                map.fitBounds(stateBounds[data], {
+                    padding: wrapperPadding
+                });
+                map.setFilter("counties", ["all",
+                  [">", "FIPS", getCountyRange(data).min],
+                  ["<=", "FIPS", getCountyRange(data).max]
+                ]);
+                if ( map.getZoom() < 2 ) {
+                  map.setZoom(2);
+                }                    
+            }
+            function getCountyRange(statefp) {
+                if (statefp[0] === '0'){
+                    return { // county FIPS less than 10,000 start with zeroes and are stored as strings in source data
+                      min: '0' + ( +statefp.slice(0,2) * 1000 ),
+                      max: '0' + ( +statefp.slice(0,2) * 1000 + 999 )
+                    }
+                } else {
+                    return { // others are stored as numbers
+                      min:  +statefp.slice(0,2) * 1000,
+                      max:  +statefp.slice(0,2) * 1000 + 999
+                    }
+                }
+            }
         }
     };
 
@@ -425,8 +410,9 @@ console.log(e);
                     return map.originalOptions.bounds === evt.target.value;
                 });
                 var mapIndex = matchingMap ? matchingMap.index: 0;
-                console.log(mapIndex);
-                mapView.maps[mapIndex].fire('click', {features:[{properties: {STATEFP: evt.target.value}}]});
+                setState('activeMap', mapIndex);
+                setState('activeStateFP', evt.target.value);
+                //mapView.maps[mapIndex].fire('click', {features:[{properties: {STATEFP: evt.target.value}}]});
 
             };
             d3.select('#state-selector')
@@ -444,6 +430,7 @@ console.log(e);
 
     const controller = {
         controlState: StateModule(),
+        controlSubs: SubscribeModule(),
         init(){
             this.setRezizeWatcher();
             mapView.init();
@@ -512,22 +499,135 @@ console.log(e);
             console.log(state);
         }
 
-        function _getState(){
-            return state;
+        function _getState(property){
+            return ( state[property] !== undefined ) ? state[property][0] : undefined;
+        }
+
+        function _getPreviousState(property){
+            return ( state[property] !== undefined && state[property][1] !== undefined ) ? state[property][1] : undefined;
         }
 
         function _setState(key,value) { 
-                                   
-            state[key] = value;
-            _logState();
+
+            if ( state[key] === undefined) { // ie first time state property is being defined
+                state[key] = [value];
+                PubSub.publish(key, value);
+                _logState();
+            } else { // not the first time the property is being defined
+            //If it's a string or array and values are the same, stateChanged=False+
+                var stateChanged = true;
+                if (typeof value === 'string') {
+                    stateChanged = (state[key][0] !== value)
+                } else if (Array.isArray(value) && Array.isArray(state[key][0])) {
+                    stateChanged = !value.compare(state[key][0])
+                } else {
+                    stateChanged = true; //assume it's changed if we can't verify
+                }              
+                //Only publish if we've changed state
+                if ( stateChanged ) { 
+                    state[key].unshift(value);
+                    PubSub.publish(key, value);
+                    _logState();
+                    if ( state[key].length > 2 ) {
+                        state[key].length = 2;
+                    }
+                }
+            }
         }
 
         return {
             logState: _logState,
             getState: _getState,
+            getPreviousState: _getPreviousState,
             setState: _setState
         }
     }
+
+    function SubscribeModule() {
+        var subscriptions = {};
+
+        function logSubs() {
+            console.log(subscriptions);
+        }
+
+        function createToken(topic, fnRef){
+            var functionHash = 'f' + fnRef.toString().hashCode();
+            var str = topic + fnRef;
+            var token = 'sub' + str.hashCode();
+            return {
+                token: token,
+                fn: functionHash
+            }
+        }
+
+        function setSubs(subsArray) { // subsArray is array of topic/function pair arrays
+            subsArray.forEach(function(pair){
+                var topic = pair[0],
+                    fnRef = pair[1],
+                    tokenObj = createToken(topic,fnRef);
+                
+                if ( subscriptions[tokenObj.fn] === undefined ) {
+                    subscriptions[tokenObj.fn] = {};
+                }
+                if ( subscriptions[tokenObj['fn']][topic] === undefined ) {
+                    subscriptions[tokenObj['fn']][topic] = PubSub.subscribe(topic,fnRef);  
+                } else {
+                    throw 'Subscription token is already in use.';
+                }
+            });
+        }
+
+        function cancelSub(topic,fnRef) { // for canceling single subscription
+            var tokenObj = createToken(topic,fnRef);
+            if ( subscriptions[tokenObj.fn] !== undefined && subscriptions[tokenObj['fn']][topic] !== undefined ) {
+                PubSub.unsubscribe( subscriptions[tokenObj['fn']][topic] );
+                delete subscriptions[tokenObj['fn']][topic];
+                if ( Object.keys(subscriptions[tokenObj['fn']]).length === 0 ) {
+                    delete subscriptions[tokenObj['fn']];
+                }
+            } else {
+                throw 'Subscription does not exist.';
+            }
+        }
+
+        function cancelFunction(fnRef) {
+            var tokenObj = createToken('',fnRef);
+            PubSub.unsubscribe(fnRef);
+            delete subscriptions[tokenObj['fn']];
+        }
+
+        return {
+            logSubs:logSubs,
+            setSubs:setSubs,
+            cancelSub:cancelSub,
+            cancelFunction: cancelFunction
+        };
+
+     }
+
+    // ALIASES
+
+    var setState = controller.controlState.setState,
+        getState = controller.controlState.getState,
+        getPreviousState = controller.controlState.getPreviousState;
+
+    var setSubs = controller.controlSubs.setSubs,
+        logSubs = controller.controlSubs.logSubs,
+        cancelSub = controller.controlSubs.cancelSub,
+        cancelFunction = controller.controlSubs.cancelFunction;
+
+    // HELPER String.hashCode()
+
+    String.prototype.hashCode = function() {
+      var hash = 0, i, chr, len;
+      if (this.length === 0) return hash;
+      for (i = 0, len = this.length; i < len; i++) {
+        chr   = this.charCodeAt(i);
+        hash  = ((hash << 5) - hash) + chr;
+        hash |= 0; // Convert to 32bit integer
+      }
+      return hash;
+    };
 
     controller.init();   
 
