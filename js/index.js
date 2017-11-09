@@ -80,7 +80,8 @@
         init(){
             setSubs([
                 ['activeStateFP', mapView.zoomInMapHandler],
-                ['activeMap', mapView.zoomInMapHandler]
+                ['activeMap', mapView.zoomInMapHandler],
+                ['activeStateFP', mapView.updateLegend]
             ]);
             this.wrapper = document.getElementById('map-view-wrapper');
             this.el = document.getElementById('map-view');
@@ -209,15 +210,19 @@
                                 background: linear-gradient(to right, ${d3.interpolateYlOrBr(d)} , ${d3.interpolateYlOrBr(this.legendRange[i + 1])});`;
                     });
 
-                this.legendSpans = legendDivs.append('span')
-                    .html((d, i) => {
-                        return d3.format(',.1f')(this.scaleState.invertExtent(d)[0]) + '&ndash;' + d3.format(',.1f')(this.scaleState.invertExtent(this.mapRange[i * 2 + 1])[1]);
-                    });
+                this.legendSpans = legendDivs.append('span');
+                this.updateLegend();    
 
                 legend
                     .append('p')
                     .text('Source: ACS 2011–2015 5-year estimates');
             }
+        },
+        updateLegend(msg,data){
+            var scale = ( msg === 'activeStateFP' && data !== null) ? mapView.scaleCounty : mapView.scaleState;
+            mapView.legendSpans.html((d, i) => {
+                return d3.format(',.1f')(scale.invertExtent(d)[0]) + '&ndash;' + d3.format(',.1f')(scale.invertExtent(mapView.mapRange[i * 2 + 1])[1]);
+            });
         },
         setOriginalCenterAndZoom(map){
             map.originalCenter = map.getCenter();
