@@ -408,17 +408,20 @@
     };
 
     const sidebarView = {
-        populateDropdown(data){
+        initializeDropdown(data){
+            setSubs([
+                ['activeStateFP', function(msg,data){
+                    d3.select('#state-selector').node().value = data; 
+                }]
+            ]);
             d3.select('#state-selector').node().onchange = function(evt){
-                console.log(evt.target.value);
-                var matchingMap = mapView.maps.find(function(map){
-                    return map.originalOptions.bounds === evt.target.value;
+                console.log(this.value);
+                var matchingMap = mapView.maps.find((map) => {
+                    return map.originalOptions.bounds === this.value
                 });
                 var mapIndex = matchingMap ? matchingMap.index: 0;
                 setState('activeMap', mapIndex);
-                setState('activeStateFP', evt.target.value);
-                //mapView.maps[mapIndex].fire('click', {features:[{properties: {STATEFP: evt.target.value}}]});
-
+                setState('activeStateFP', this.value);
             };
             d3.select('#state-selector')
                 .selectAll('stateOptions')
@@ -449,7 +452,7 @@
             this.getACSData('stateData','https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0099PE,NAME&for=state:*&key=');
             this.getACSData('countyData','https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0099PE,NAME&for=county:*&key=');
             Promise.all([this.promises.data[0]]).then((values) => {
-                sidebarView.populateDropdown(values[0]);
+                sidebarView.initializeDropdown(values[0]);
             });
             Promise.all([Promise.all(this.promises.data),
                          Promise.all(this.promises.maps)])
