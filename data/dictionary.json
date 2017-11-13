@@ -1,0 +1,322 @@
+[
+    {
+        "variable": "DP03_0095E",
+        "group": "DP03_0095E",
+        "label": "Population",
+        "name": "Civilian noninstitutionalized population",
+        "description": "The civilian noninstitutionalized population refers to people 16 years of age and older residing in the 50 states and the District of Columbia who are not inmates of institutions (penal, mental facilities, homes for the aged), and who are not on active duty in the armed forces."
+    },
+    {
+        "variable": "DP03_0096E",
+        "group": "DP03_0095E",
+        "label": "With health insurance",
+        "name": "Civilian noninstitutionalized population with health insurance",
+        "description": "Estimate of the civilian noninstitutionalized population with any form of health insurance (public or private), except throught the Indian Health Service."
+    },
+    {
+        "variable": "DP03_0096PE",
+        "group": "DP03_0095E",
+        "label": "Percentage with health insurance",
+        "name": "Civilian noninstitutionalized population with health insurance (percentage)",
+        "description": "Percentage of the civilian noninstitutionalized population with any form of health insurance (public or private), except throught the Indian Health Service."
+    },
+    {
+        "variable": "DP03_0097E",
+        "group": "DP03_0095E",
+        "label": "With private health insurance",
+        "name": "Civilian noninstitutionalized population with private health insurance",
+        "description": "Estimate of the civilian noninstitutionalized population with private health insurance."
+    },
+    {
+        "variable": "DP03_0097PE",
+        "group": "DP03_0095E",
+        "label": "Percentage with private health insurance",
+        "name": "Civilian noninstitutionalized population with private health insurance (percentage)",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0098E",
+        "group": "DP03_0095E",
+        "label": "With public health insurance",
+        "name": "Civilian noninstitutionalized population with public health insurance",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0098PE",
+        "group": "DP03_0095E",
+        "label": "Percentage with public health insurance",
+        "name": "Civilian noninstitutionalized population with public health insurance (percentage)",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0099E",
+        "group": "DP03_0095E",
+        "label": "With no health insurance",
+        "name": "Civilian noninstitutionalized population with no health insurance",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0099PE",
+        "group": "DP03_0095E",
+        "label": "Percentage with no health insurance",
+        "name": "Civilian noninstitutionalized population with no health insurance (percentage)",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0100E",
+        "group": "DP03_0100E",
+        "label": "Population under 18",
+        "name": "Civilian noninstitutionalized population under 18 years old",
+        "description": "The civilian noninstitutionalized population refers to people 16 years of age and older residing in the 50 states and the District of Columbia who are not inmates of institutions (penal, mental facilities, homes for the aged), and who are not on active duty in the armed forces."
+    },
+    {
+        "variable": "DP03_0101E",
+        "group": "DP03_0100E",
+        "label": "With no health insurance",
+        "name": "Civilian noninstitutionalized population under 18 years old with no health insurance",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0101PE",
+        "group": "DP03_0100E",
+        "label": "Percentage with no health insurance",
+        "name": "Civilian noninstitutionalized population under 18 years old with no health insurance (percentage)",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0102E",
+        "group": "DP03_0102E",
+        "label": "Population 18 to 64",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old",
+        "description": "The civilian noninstitutionalized population refers to people 16 years of age and older residing in the 50 states and the District of Columbia who are not inmates of institutions (penal, mental facilities, homes for the aged), and who are not on active duty in the armed forces."
+    },
+    {
+        "variable": "DP03_0103E",
+        "group": "DP03_0102E",
+        "label": "In labor force",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old in the labor force",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0103PE",
+        "group": "DP03_0102PE",
+        "label": "Percentage in labor force",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old in the labor force (percentage)",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0104E",
+        "group": "DP03_0103E",
+        "label": "Employed",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old employed in the labor force",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0104PE",
+        "group": "DP03_0103PE",
+        "label": "Percentage employed",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old employed in the labor force (percentage)",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0105E",
+        "group": "DP03_0104E",
+        "label": "With insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old employed in the labor force with health insurance",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0105PE",
+        "group": "DP03_0104E",
+        "label": "Percentage with insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old employed in the labor force with health insurance (percentage)",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0106E",
+        "group": "DP03_0105E",
+        "label": "With private insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old employed in the labor force with private health insurance",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0106PE",
+        "group": "DP03_0105E",
+        "label": "Percentage with private insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old employed in the labor force with privte health insurance (percentage)",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0107E",
+        "group": "DP03_0105E",
+        "label": "With public insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old employed in the labor force with public health insurance",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0107PE",
+        "group": "DP03_0105E",
+        "label": "Percentage with public insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old employed in the labor force with public health insurance (percentage)",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0108E",
+        "group": "DP03_0104E",
+        "label": "With no insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old employed in the labor force with no health insurance",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0108PE",
+        "group": "DP03_0104E",
+        "label": "Percentage with no insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old employed in the labor force with no health insurance (percentage)",
+        "description": ""
+    },
+
+    {
+        "variable": "DP03_0109E",
+        "group": "DP03_0103E",
+        "label": "Unemployed",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old unemployed in the labor force",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0109PE",
+        "group": "DP03_0103PE",
+        "label": "Percentage unemployed",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old unemployed in the labor force (percentage)",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0110E",
+        "group": "DP03_0109E",
+        "label": "With insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old unemployed in the labor force with health insurance",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0110PE",
+        "group": "DP03_0109E",
+        "label": "Percentage with insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old unemployed in the labor force with health insurance (percentage)",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0111E",
+        "group": "DP03_0110E",
+        "label": "With private insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old unemployed in the labor force with private health insurance",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0111PE",
+        "group": "DP03_0110E",
+        "label": "Percentage with private insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old unemployed in the labor force with privte health insurance (percentage)",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0112E",
+        "group": "DP03_0110E",
+        "label": "With public insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old unemployed in the labor force with public health insurance",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0112PE",
+        "group": "DP03_0110E",
+        "label": "Percentage with public insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old unemployed in the labor force with public health insurance (percentage)",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0113E",
+        "group": "DP03_0109E",
+        "label": "With no insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old unemployed in the labor force with no health insurance",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0113PE",
+        "group": "DP03_0109E",
+        "label": "Percentage with no insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old unemployed in the labor force with no health insurance (percentage)",
+        "description": ""
+    },
+
+
+
+    
+    {
+        "variable": "DP03_0114E",
+        "group": "DP03_0102E",
+        "label": "Not in labor force",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old not in the labor force",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0114PE",
+        "group": "DP03_0102PE",
+        "label": "Percentage not in labor force",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old not in the labor force (percentage)",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0115E",
+        "group": "DP03_0114E",
+        "label": "With insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old not in the labor force with health insurance",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0115PE",
+        "group": "DP03_0114E",
+        "label": "Percentage with insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old not in the labor force with health insurance (percentage)",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0116E",
+        "group": "DP03_0115E",
+        "label": "With private insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old not in the labor force with private health insurance",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0116PE",
+        "group": "DP03_0115E",
+        "label": "Percentage with private insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old not in the labor force with privte health insurance (percentage)",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0117E",
+        "group": "DP03_0115E",
+        "label": "With public insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old not in the labor force with public health insurance",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0117PE",
+        "group": "DP03_0115E",
+        "label": "Percentage with public insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old not in the labor force with public health insurance (percentage)",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0118E",
+        "group": "DP03_0114E",
+        "label": "With no insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old not in the labor force with no health insurance",
+        "description": ""
+    },
+    {
+        "variable": "DP03_0118PE",
+        "group": "DP03_0114E",
+        "label": "Percentage with no insurance",
+        "name": "Civilian noninstitutionalized population from 18 to 64 years old not in the labor force with no health insurance (percentage)",
+        "description": ""
+    },
+]

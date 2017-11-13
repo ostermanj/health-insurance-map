@@ -128,8 +128,9 @@
             }
         },
         setup(values){
-            var stateData = values[0][0],
-                countyData = values[0][1];
+            console.log(values);
+            var stateData = values[0],
+                countyData = values[1];
             createStops.call(this);
             createLegend.call(this);
             mapView.maps.forEach(each => {
@@ -412,7 +413,8 @@
             setSubs([
                 ['activeStateFP', function(msg,data){
                     d3.select('#state-selector').node().value = data; 
-                }]
+                }],
+                ['activeStateFP', this.getStateDetails]
             ]);
             d3.select('#state-selector').node().onchange = function(evt){
                 console.log(this.value);
@@ -433,8 +435,17 @@
                 .text(function(d){
                     return d.NAME;
                 });
+        },
+        getStateDetails(msg,data){
+            console.log(data);
+            if ( data ) {
+                if ( controller.promises['state' + data] === undefined) {
+                    controller.promises['state' + data] = controller.returnACSData('https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0095E,DP03_0096E,DP03_0097E,DP03_0098E,DP03_0099E,DP03_0100E,DP03_0101E,DP03_0102E,DP03_0103E,DP03_0104E,DP03_0105E,DP03_0106E,DP03_0107E,DP03_0108E,DP03_0109E,DP03_0110E,DP03_0111E,DP03_0112E,DP03_0113E,DP03_0114E,DP03_0115E,DP03_0116E,DP03_0117E,DP03_0118E,NAME&for=state:' + data + '&key=');
+                }
+                controller.promises['state' + data].then((values) => console.log(values));
+            }
         }
-    }
+    };
 
     const controller = {
         controlState: StateModule(),
@@ -443,20 +454,22 @@
             this.setRezizeWatcher();
             mapView.init();
 
-            this.promises = {maps:[],data:[]};
+            this.promises = {maps:[]};
             mapOptions.forEach((options, i) =>{
                 this.promises.maps[i] = new Promise((resolve,reject) => {
                     mapView.initializeMap(options, i, resolve);
                 });
             });
-            this.getACSData('stateData','https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0099PE,NAME&for=state:*&key=');
-            this.getACSData('countyData','https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0099PE,NAME&for=county:*&key=');
-            Promise.all([this.promises.data[0]]).then((values) => {
+            this.promises.stateData = this.returnACSData('https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0099PE,NAME&for=state:*&key=');
+            this.promises.countyData = this.returnACSData('https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0099PE,NAME&for=county:*&key=');
+            Promise.all([this.promises.stateData]).then((values) => {
                 sidebarView.initializeDropdown(values[0]);
             });
-            Promise.all([Promise.all(this.promises.data),
+            Promise.all([this.promises.stateData,
+                         this.promises.countyData,
                          Promise.all(this.promises.maps)])
                 .then((values)=>{
+                    console.log(values);
                     mapView.setup(values);
                 });
              
@@ -474,18 +487,16 @@
                 }, 200);
             };
         },
-        getACSData(name, url){
-            this.promises.data.push(
-                new Promise((resolve,reject) => {
-                    d3.json(url + censusKey, (error,data) => { 
-                        if (error) {
-                            console.log(error);
-                            reject(error);
-                        }
-                        resolve(this.returnKeyValues(data, null, false));
-                    });
-                })
-            ); 
+        returnACSData(url){
+            return new Promise((resolve,reject) => {
+                d3.json(url + censusKey, (error,data) => { 
+                    if (error) {
+                        console.log(error);
+                        reject(error);
+                    }
+                    resolve(this.returnKeyValues(data, null, false));
+                });
+            });
         },
         returnKeyValues(values, rollup, coerce){ // coerce = BOOL coerce to num or not 
             return values.slice(1).map(row => row.reduce(function(acc, cur, i) { // 1. params: total, currentValue, currentIndex[, arr]
