@@ -91,6 +91,10 @@ div {
     position: relative;
 }
 
+#sidebar-top {
+    min-height: 154px;
+}
+
 .sidebar-section {
         border-bottom: 8px solid white;
     }
@@ -111,9 +115,12 @@ div {
     border-radius: 3px;
 }
 
+
+
 #legend {
     line-height: 18px;
     width: 100%;
+
 }
 
 #legend > div {
@@ -134,4 +141,24 @@ div {
 
 .mapboxgl-ctrl {
     display:none !important;
+}
+
+.load {
+    background: url(/assets/spinner.svg) no-repeat 98% 2%;
+    background-size: 20px;
+}
+
+.load-overlay {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 9;
+}
+.load-overlay.load-finished {
+    display:none;
+}
+.load-finished {
+    background: none;
 }

@@ -13,9 +13,9 @@
 <body>
 <div id="content-wrapper" class="flex no-wrap">
     <div id="sidebar">
-        <div id="sidebar-top" class="sidebar-section margins">
+        <div id="sidebar-top" class="sidebar-section margins load">
         </div>
-        <div class="sidebar-section margins">
+        <div id="dropdown-div" class="sidebar-section margins load">
             <label id="state-label" for="state-selector">Select state</label>
             <select id="state-selector">
                 <option selected value="null">&mdash; select a state &mdash;</option>
@@ -25,14 +25,20 @@
     <div id="map-view-wrapper" class="relative">
         <div id="map-view" class="flex flex-column grow-1">
             <div id="map-0-wrapper" class="map-wrapper lower48">
-                <div id="map-0" class="map-container"></div>
+                <div id="map-0" class="map-container">
+                    <div class="load load-overlay"></div>
+                </div>
             </div>
             <div id="lower-map-wrapper" class="flex space-between">
                 <div id="map-1-wrapper" class="map-wrapper alaska">
-                    <div id="map-1" class="map-container"></div>
+                    <div id="map-1" class="map-container">
+                        <div class="load load-overlay"></div>
+                    </div>
                 </div>
                 <div id="map-2-wrapper" class="map-wrapper hawaii">
-                    <div id="map-2" class="map-container"></div>
+                    <div id="map-2" class="map-container">
+                        <div class="load load-overlay"></div>
+                    </div>
                 </div>
             </div>
         </div>

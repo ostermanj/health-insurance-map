@@ -224,6 +224,7 @@
             mapView.legendSpans.html((d, i) => {
                 return d3.format(',.1f')(scale.invertExtent(d)[0]) + '&ndash;' + d3.format(',.1f')(scale.invertExtent(mapView.mapRange[i * 2 + 1])[1]);
             });
+            d3.select('#legend').node().parentNode.classList.add('load-finished');
         },
         setOriginalCenterAndZoom(map){
             map.originalCenter = map.getCenter();
@@ -284,6 +285,8 @@
                         ]).then(() => {
                             addChloroLayer();
                             setMouseEvents();
+                            d3.select('#' + map.originalOptions.container + ' .load-overlay')
+                                .classed('load-finished', true);
                         });
                     });
 
@@ -435,6 +438,9 @@
                 .text(function(d){
                     return d.NAME;
                 });
+
+            d3.select('#dropdown-div')
+                .classed('load-finished', true);
         },
         getStateDetails(msg,data){
             console.log(data);
