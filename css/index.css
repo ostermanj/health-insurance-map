@@ -5,9 +5,8 @@
 
 }
 
-div {
-    /*background-color: rgba(0,0,255,0.1);*/
-
+body {
+    font-family: 'Roboto Condensed', sans-serif;
 }
 
 #map-view {
@@ -95,7 +94,7 @@ div {
     min-height: 154px;
 }
 
-.sidebar-section {
+.sidebar-section:not(:last-child) {
         border-bottom: 8px solid white;
     }
 
@@ -161,4 +160,40 @@ div {
 }
 .load-finished {
     background: none;
+}
+
+/* charts */
+
+#sidebar-bottom > div > p {
+    font-size: 1.2em;
+    text-transform: uppercase;
+}
+
+#sidebar-bottom > div > div > p {
+    font-size: 1.1em;
+    padding-left: 1em;
+}
+
+#sidebar-bottom > div > div > div > p {
+    padding-left: 2em;
+}
+
+rect.without {
+    fill: #68240E;
+}
+
+rect.private {
+    fill: #2b526f;
+    
+}
+
+rect.public {
+    fill: #3f98da;
+    fill-opacity: 0.9;
+}
+
+rect.unspecified {
+
+  
+    
 }

@@ -412,6 +412,7 @@
     };
 
     const sidebarView = {
+        chartsAreCreated: false,
         initializeDropdown(data){
             setSubs([
                 ['activeStateFP', function(msg,data){
@@ -443,13 +444,178 @@
                 .classed('load-finished', true);
         },
         getStateDetails(msg,data){
-            console.log(data);
+            if ( controller.promises.dictionary === undefined ){
+                controller.promises.dictionary = controller.returnData('/data/array-dictionary.json', null, false);
+            }
             if ( data ) {
                 if ( controller.promises['state' + data] === undefined) {
-                    controller.promises['state' + data] = controller.returnACSData('https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0095E,DP03_0096E,DP03_0097E,DP03_0098E,DP03_0099E,DP03_0100E,DP03_0101E,DP03_0102E,DP03_0103E,DP03_0104E,DP03_0105E,DP03_0106E,DP03_0107E,DP03_0108E,DP03_0109E,DP03_0110E,DP03_0111E,DP03_0112E,DP03_0113E,DP03_0114E,DP03_0115E,DP03_0116E,DP03_0117E,DP03_0118E,NAME&for=state:' + data + '&key=');
+                    controller.promises['state' + data] = controller.returnACSData('https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0095E,DP03_0095PE,DP03_0096E,DP03_0096PE,DP03_0097E,DP03_0097PE,DP03_0098E,DP03_0098PE,DP03_0099E,DP03_0099PE,DP03_0100E,DP03_0100PE,DP03_0101E,DP03_0101PE,DP03_0102E,DP03_0102PE,DP03_0103E,DP03_0103PE,DP03_0104E,DP03_0104PE,DP03_0105E,DP03_0105PE,DP03_0106E,DP03_0106PE,DP03_0107E,DP03_0107PE,DP03_0108E,DP03_0108PE,DP03_0109E,DP03_0109PE,DP03_0110E,DP03_0110PE,DP03_0111E,DP03_0111PE,DP03_0112E,DP03_0112PE,DP03_0113E,DP03_0113PE,DP03_0114E,DP03_0114PE,DP03_0115E,DP03_0115PE,DP03_0116E,DP03_0116PE,DP03_0117E,DP03_0117PE,DP03_0118E,DP03_0118PE,NAME&for=state:' + data + '&key=');
                 }
-                controller.promises['state' + data].then((values) => console.log(values));
+                Promise.all([controller.promises.dictionary, controller.promises['state' + data]]).then((values) =>{
+                  sidebarView.createCharts(values);
+                  console.log(values);
+                });
+                
             }
+        },
+        createCharts(values){ // values[0] is the dictionary; [1][0] is the state's data
+        console.log(values[1][0]);
+            if ( !this.chartsAreCreated ){
+
+                var noInsuranceVars = values[0].filter(x => x.type === 'without' && x.variable.indexOf('PE') !== -1).map(x => x.variable);
+                var withInsuranceVars = values[0].filter(x => x.type === 'with' && x.variable.indexOf('PE') !== -1).map(x => x.variable);
+                var noInsData = controller.returnACSData('https://api.census.gov/data/2015/acs/acs5/profile?get=' + noInsuranceVars.join() + ',NAME&for=state:*&key=', null, false);
+                var withInsData = controller.returnACSData('https://api.census.gov/data/2015/acs/acs5/profile?get=' + withInsuranceVars.join() + ',NAME&for=state:*&key=', null, false);
+                Promise.all([noInsData,withInsData]).then(values => {
+
+                    function reduceValues(value) {
+                        return value.reduce((acc, cur) => {
+                            Object.keys(cur).forEach(each => {
+                                if ( cur[each].indexOf('.') !== -1 ){
+                                    acc.push(+cur[each]);
+                                }
+                            });
+                            return acc;
+                        },[]);
+                    }
+
+                    var maxWithout = d3.max(reduceValues(values[0])),
+                        maxWith =    d3.max(reduceValues(values[1]));
+
+                    nextStep(maxWithout, maxWith);
+                });
+
+                function nextStep(maxWithout, maxWith){
+                    console.log(maxWithout, maxWith);
+                    var rangeExtent = maxWithout + maxWith;
+                    var categories = values[0].filter(x => x.type === 'category' && x.variable.indexOf('PE') === -1 );
+                    var catDivs = d3.select('#sidebar-bottom')
+                        .selectAll('categories')
+                        .data(categories)
+                        .enter().append('div')
+                        .attr('id', d => d.variable);
+
+                   /* catDivs.append('p')
+                        .text(d => d.label);*/
+                       
+                    catDivs.each(function(d){
+                        if ( d.variable !== d.group ){
+                            console.log(this);
+                            document.getElementById(d.group).appendChild(this);
+                        }
+                    });
+
+                
+                    var series = values[0].filter(x => x.type !== 'category' && x.variable.indexOf('PE') === -1 );
+                    console.log(series);
+                    var nested = d3.nest()
+                        .key(function(d){
+                            return d.group;
+                        })
+                        .entries(series);
+                        console.log(nested);
+                    nested.forEach(function(each){
+                        console.log(each.values.find(x => x.type === 'without').variable);
+                        
+                        var viewBox = '0 0 100 10',
+                            margin = {top:2,right:2,bottom:2,left:2}, // in percentages of the viewbox
+                            width = 100 - margin.left - margin.right;
+
+                        var scale = d3.scaleLinear().domain([0,rangeExtent]).range([0,width]);
+                        window.scale = scale;
+                       
+
+                        
+                        var svg = d3.select('#' + each.key)
+                            .append('svg')
+                            .attr('width', '100%')
+                            .attr('xmlns','http://www.w3.org/2000/svg')
+                            .attr('version','1.1')
+                            .attr('viewBox', viewBox);
+
+                        var pattern = svg.append("defs")
+                            .append("pattern")
+                                .attr('id',"hash4_4")
+                                .attr('width',"4")
+                                .attr("height","4")
+                                .attr("patternUnits","userSpaceOnUse")
+                                .attr("patternTransform","rotate(60)");
+                            pattern.append('rect')
+                                .attr("width","2")
+                                .attr("height","4")
+                                .attr("transform","translate(0,0)")
+                                .attr("fill","#2b526f");
+                            pattern.append('rect')
+                                .attr("width","2")
+                                .attr("height","4")
+                                .attr("transform","translate(2,0)")
+                                .attr("fill","#3f98da");
+
+                    //    svg.html("<defs><pattern id='Pattern' x='0' y='0' width='10' height='10'><rect width='25' height='25' fill='#2b526f'/><g transform='rotate(45)'><rect width='99' height='3' fill='#3f98da' /><rect y='-7' width='99' height='3' fill='#3f98da'/></g></pattern></defs>");
+
+                            svg.append('g')
+                            .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+                        var without = svg.selectAll('without')
+                            .data([each.values.find(x => x.type === 'without')])
+                            .enter().append('rect')
+                            .classed('without',true)
+                            .attr('id', d => values[1][0].state + '-' + d.variable.replace('E','PE'))
+                            .attr('transform', d => `translate(${scale(maxWithout) - scale(values[1][0][d.variable.replace('E','PE')]) }, 0)`)
+                            .attr('width', d => { console.log(d.variable.replace('E','PE'));
+                                return scale(values[1][0][d.variable.replace('E','PE')]);
+                            })
+                            .attr('height',5);
+
+                        if ( each.values.find(x => x.type === 'private') !== undefined ) {
+                            
+
+
+                             var priv = svg.selectAll('private')
+                                .data([each.values.find(x => x.type === 'private')])
+                                .enter().append('rect')
+                                .classed('private',true)
+                                .attr('id', d => values[1][0].state + '-' + d.variable.replace('E','PE'))
+                                .attr('transform', d => `translate(${scale(maxWithout)}, 0)`)
+                                .attr('width', d => scale(values[1][0][d.variable.replace('E','PE')]) )
+                                .attr('height',5);
+                                
+                             var pub = svg.selectAll('public')
+                                .data([each.values.find(x => x.type === 'public')])
+                                .enter().append('rect')
+                                .classed('public',true)
+                                .attr('id', d => values[1][0].state + '-' + d.variable.replace('E','PE'))
+                                .attr('transform', function(d){
+                                    var privateValue = values[1][0][each.values.find(x => x.type === 'private').variable.replace('E','PE')];
+                                    var publicValue =  values[1][0][each.values.find(x => x.type === 'public').variable.replace('E','PE')];
+                                    var withValue =  values[1][0][each.values.find(x => x.type === 'with').variable.replace('E','PE')];
+                                    return `translate(${scale(maxWithout) + scale(withValue - publicValue)}, 0)`;
+                                })
+                                .attr('width', d => scale(values[1][0][d.variable.replace('E','PE')]) )
+                                .attr('height',5);
+
+                       
+                        } else {
+                            var unspecified = svg.selectAll('unspecified')
+                                .data([each.values.find(x => x.type === 'without')])
+                                .enter().append('rect')
+                                .classed('unspecified',true)
+                                .attr('id', d => values[1][0].state + '-' + d.variable.replace('E','PE'))
+                                .attr('transform', d => `translate(${scale(maxWithout)}, 0)`)
+                                .attr('width', d => scale(100 - values[1][0][d.variable.replace('E','PE')]) )
+                                .attr('height',5)
+                                .attr('fill',"url(#hash4_4)");
+                        }
+
+
+                    });
+                }
+                this.chartsAreCreated = true;
+            }
+          //  this.updateCharts(values);
+        },
+        updateCharts(values){
+
         }
     };
 
@@ -466,8 +632,8 @@
                     mapView.initializeMap(options, i, resolve);
                 });
             });
-            this.promises.stateData = this.returnACSData('https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0099PE,NAME&for=state:*&key=');
-            this.promises.countyData = this.returnACSData('https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0099PE,NAME&for=county:*&key=');
+            this.promises.stateData = this.returnACSData('https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0099PE,NAME&for=state:*&key=', null, false);
+            this.promises.countyData = this.returnACSData('https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0099PE,NAME&for=county:*&key=', null, false);
             Promise.all([this.promises.stateData]).then((values) => {
                 sidebarView.initializeDropdown(values[0]);
             });
@@ -493,18 +659,30 @@
                 }, 200);
             };
         },
-        returnACSData(url){
+        returnACSData(url, rollup, coerce){
             return new Promise((resolve,reject) => {
                 d3.json(url + censusKey, (error,data) => { 
                     if (error) {
                         console.log(error);
                         reject(error);
                     }
-                    resolve(this.returnKeyValues(data, null, false));
+                    resolve(this.returnKeyValues(data, rollup, coerce));
+                });
+            });
+        },
+        returnData(url, rollup, coerce){
+            return new Promise((resolve,reject) => {
+                d3.json(url, (error,data) => { 
+                    if (error) {
+                        console.log(error);
+                        reject(error);
+                    }
+                    resolve(data);
                 });
             });
         },
         returnKeyValues(values, rollup, coerce){ // coerce = BOOL coerce to num or not 
+            console.log(values);
             return values.slice(1).map(row => row.reduce(function(acc, cur, i) { // 1. params: total, currentValue, currentIndex[, arr]
               acc[values[0][i]] = coerce === true ? isNaN(+cur) ? cur : +cur : cur; // 3. // acc is an object , key is corresponding value from row 0, value is current value of array
               if ( rollup ) {
