@@ -445,7 +445,7 @@
         },
         getStateDetails(msg,data){
             if ( controller.promises.dictionary === undefined ){
-                controller.promises.dictionary = controller.returnData('/data/array-dictionary.json', null, false);
+                controller.promises.dictionary = controller.returnData('data/array-dictionary.json', null, false);
             }
             if ( data ) {
                 if ( controller.promises['state' + data] === undefined) {
