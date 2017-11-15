@@ -66,6 +66,10 @@ body {
     flex-grow: 1;
 }
 
+.shrink-1 {
+    flex-shrink: 1;
+}
+
 .space-between {
     justify-content: space-between;
 }
@@ -193,7 +197,13 @@ rect.public {
 }
 
 rect.unspecified {
-
-  
     
+}
+
+.category-label {
+    fill: #767676;
+}
+
+#sidebar-bottom svg {
+    max-width: 300px;
 }

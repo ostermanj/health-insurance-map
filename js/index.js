@@ -460,8 +460,11 @@
         },
         createCharts(values){ // values[0] is the dictionary; [1][0] is the state's data
         console.log(values[1][0]);
-            if ( !this.chartsAreCreated ){
 
+        
+
+            
+            if ( !this.chartsAreCreated ){
                 var noInsuranceVars = values[0].filter(x => x.type === 'without' && x.variable.indexOf('PE') !== -1).map(x => x.variable);
                 var withInsuranceVars = values[0].filter(x => x.type === 'with' && x.variable.indexOf('PE') !== -1).map(x => x.variable);
                 var noInsData = controller.returnACSData('https://api.census.gov/data/2015/acs/acs5/profile?get=' + noInsuranceVars.join() + ',NAME&for=state:*&key=', null, false);
@@ -484,134 +487,153 @@
 
                     nextStep(maxWithout, maxWith);
                 });
+            } // end if ( !this.chartsAreCreated )
+            
+            function nextStep(maxWithout, maxWith){
 
-                function nextStep(maxWithout, maxWith){
-                    console.log(maxWithout, maxWith);
-                    var rangeExtent = maxWithout + maxWith;
-                    var categories = values[0].filter(x => x.type === 'category' && x.variable.indexOf('PE') === -1 );
-                    var catDivs = d3.select('#sidebar-bottom')
-                        .selectAll('categories')
-                        .data(categories)
-                        .enter().append('div')
-                        .attr('id', d => d.variable);
-
-                   /* catDivs.append('p')
-                        .text(d => d.label);*/
-                       
-                    catDivs.each(function(d){
-                        if ( d.variable !== d.group ){
-                            console.log(this);
-                            document.getElementById(d.group).appendChild(this);
-                        }
-                    });
+                var countryLabel = d3.select('#sidebar-bottom')
+                    .append('p')
+                    .text(values[1][0].NAME);
 
                 
-                    var series = values[0].filter(x => x.type !== 'category' && x.variable.indexOf('PE') === -1 );
-                    console.log(series);
-                    var nested = d3.nest()
-                        .key(function(d){
-                            return d.group;
+                    
+                console.log(maxWithout, maxWith);
+                var rangeExtent = maxWithout + maxWith;
+                var categories = values[0].filter(x => x.type === 'category' && x.variable.indexOf('PE') === -1 );
+                var catDivs = d3.select('#sidebar-bottom')
+                    .selectAll('categories')
+                    .data(categories)
+                    .enter().append('div')
+                    .attr('id', d => d.variable);
+                    
+
+             /*   catDivs.append('p')
+                    .classed('category-label', true)
+                    .text(d => d.label);*/
+                   
+                catDivs.each(function(d){
+                    if ( d.variable !== d.group ){
+                        console.log(this);
+                        document.getElementById(d.group).appendChild(this);
+                    }
+                });
+
+
+
+                var series = values[0].filter(x => x.type !== 'category' && x.variable.indexOf('PE') === -1 );
+                console.log(series);
+                var nested = d3.nest()
+                    .key(function(d){
+                        return d.group;
+                    })
+                    .entries(series);
+                    console.log(nested);
+                nested.forEach(function(each){
+                    console.log(each.values.find(x => x.type === 'without').variable);
+                    
+                    var viewBox = '0 0 100 12',
+                        margin = {top:6,right:0,bottom:0,left:0}, // in percentages of the viewbox width
+                        width = 100 - margin.left - margin.right;
+
+                    var scale = d3.scaleLinear().domain([0,rangeExtent]).range([0,width]);
+                    window.scale = scale;
+                   
+
+                    
+                    var svg = d3.select('#' + each.key)
+                        .append('svg')
+                        .attr('width', '100%')
+                        .attr('xmlns','http://www.w3.org/2000/svg')
+                        .attr('version','1.1')
+                        .attr('viewBox', viewBox);
+                        
+
+                    var pattern = svg.append("defs")
+                        .append("pattern")
+                            .attr('id',"hash4_4")
+                            .attr('width',"4")
+                            .attr("height","4")
+                            .attr("patternUnits","userSpaceOnUse")
+                            .attr("patternTransform","rotate(60)");
+                        pattern.append('rect')
+                            .attr("width","2")
+                            .attr("height","4")
+                            .attr("transform","translate(0,0)")
+                            .attr("fill","#2b526f");
+                        pattern.append('rect')
+                            .attr("width","2")
+                            .attr("height","4")
+                            .attr("transform","translate(2,0)")
+                            .attr("fill","#3f98da");
+
+                //    svg.html("<defs><pattern id='Pattern' x='0' y='0' width='10' height='10'><rect width='25' height='25' fill='#2b526f'/><g transform='rotate(45)'><rect width='99' height='3' fill='#3f98da' /><rect y='-7' width='99' height='3' fill='#3f98da'/></g></pattern></defs>");
+
+                    var g =  svg.append('g')
+                        .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+                      
+                    g.append('text')
+                        .text(values[0].find(x => x.variable === each.values.find(x => x.type === 'without').group).label)
+                        .attr('font-size', 5.5)
+                        .attr('x', scale(maxWithout))
+                        .attr('transform', 'translate(0,-2)')
+                        .classed('category-label', true);
+
+                    var without = g.selectAll('without')
+                        .data([each.values.find(x => x.type === 'without')])
+                        .enter().append('rect')
+                        .classed('without',true)
+                        .attr('id', d => values[1][0].state + '-' + d.variable.replace('E','PE'))
+                        .attr('transform', d => `translate(${scale(maxWithout) - scale(values[1][0][d.variable.replace('E','PE')]) }, 0)`)
+                        .attr('width', d => { console.log(d.variable.replace('E','PE'));
+                            return scale(values[1][0][d.variable.replace('E','PE')]);
                         })
-                        .entries(series);
-                        console.log(nested);
-                    nested.forEach(function(each){
-                        console.log(each.values.find(x => x.type === 'without').variable);
+                        .attr('height',5);
+
+                    if ( each.values.find(x => x.type === 'private') !== undefined ) {
                         
-                        var viewBox = '0 0 100 10',
-                            margin = {top:2,right:2,bottom:2,left:2}, // in percentages of the viewbox
-                            width = 100 - margin.left - margin.right;
 
-                        var scale = d3.scaleLinear().domain([0,rangeExtent]).range([0,width]);
-                        window.scale = scale;
-                       
 
-                        
-                        var svg = d3.select('#' + each.key)
-                            .append('svg')
-                            .attr('width', '100%')
-                            .attr('xmlns','http://www.w3.org/2000/svg')
-                            .attr('version','1.1')
-                            .attr('viewBox', viewBox);
-
-                        var pattern = svg.append("defs")
-                            .append("pattern")
-                                .attr('id',"hash4_4")
-                                .attr('width',"4")
-                                .attr("height","4")
-                                .attr("patternUnits","userSpaceOnUse")
-                                .attr("patternTransform","rotate(60)");
-                            pattern.append('rect')
-                                .attr("width","2")
-                                .attr("height","4")
-                                .attr("transform","translate(0,0)")
-                                .attr("fill","#2b526f");
-                            pattern.append('rect')
-                                .attr("width","2")
-                                .attr("height","4")
-                                .attr("transform","translate(2,0)")
-                                .attr("fill","#3f98da");
-
-                    //    svg.html("<defs><pattern id='Pattern' x='0' y='0' width='10' height='10'><rect width='25' height='25' fill='#2b526f'/><g transform='rotate(45)'><rect width='99' height='3' fill='#3f98da' /><rect y='-7' width='99' height='3' fill='#3f98da'/></g></pattern></defs>");
-
-                            svg.append('g')
-                            .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
-
-                        var without = svg.selectAll('without')
-                            .data([each.values.find(x => x.type === 'without')])
+                         var priv = g.selectAll('private')
+                            .data([each.values.find(x => x.type === 'private')])
                             .enter().append('rect')
-                            .classed('without',true)
+                            .classed('private',true)
                             .attr('id', d => values[1][0].state + '-' + d.variable.replace('E','PE'))
-                            .attr('transform', d => `translate(${scale(maxWithout) - scale(values[1][0][d.variable.replace('E','PE')]) }, 0)`)
-                            .attr('width', d => { console.log(d.variable.replace('E','PE'));
-                                return scale(values[1][0][d.variable.replace('E','PE')]);
+                            .attr('transform', d => `translate(${scale(maxWithout)}, 0)`)
+                            .attr('width', d => scale(values[1][0][d.variable.replace('E','PE')]) )
+                            .attr('height',5);
+                            
+                         var pub = g.selectAll('public')
+                            .data([each.values.find(x => x.type === 'public')])
+                            .enter().append('rect')
+                            .classed('public',true)
+                            .attr('id', d => values[1][0].state + '-' + d.variable.replace('E','PE'))
+                            .attr('transform', function(d){
+                                var privateValue = values[1][0][each.values.find(x => x.type === 'private').variable.replace('E','PE')];
+                                var publicValue =  values[1][0][each.values.find(x => x.type === 'public').variable.replace('E','PE')];
+                                var withValue =  values[1][0][each.values.find(x => x.type === 'with').variable.replace('E','PE')];
+                                return `translate(${scale(maxWithout) + scale(withValue - publicValue)}, 0)`;
                             })
+                            .attr('width', d => scale(values[1][0][d.variable.replace('E','PE')]) )
                             .attr('height',5);
 
-                        if ( each.values.find(x => x.type === 'private') !== undefined ) {
-                            
+                   
+                    } else {
+                        var unspecified = g.selectAll('unspecified')
+                            .data([each.values.find(x => x.type === 'without')])
+                            .enter().append('rect')
+                            .classed('unspecified',true)
+                            .attr('id', d => values[1][0].state + '-' + d.variable.replace('E','PE'))
+                            .attr('transform', d => `translate(${scale(maxWithout)}, 0)`)
+                            .attr('width', d => scale(100 - values[1][0][d.variable.replace('E','PE')]) )
+                            .attr('height',5)
+                            .attr('fill',"url(#hash4_4)");
+                    }
 
 
-                             var priv = svg.selectAll('private')
-                                .data([each.values.find(x => x.type === 'private')])
-                                .enter().append('rect')
-                                .classed('private',true)
-                                .attr('id', d => values[1][0].state + '-' + d.variable.replace('E','PE'))
-                                .attr('transform', d => `translate(${scale(maxWithout)}, 0)`)
-                                .attr('width', d => scale(values[1][0][d.variable.replace('E','PE')]) )
-                                .attr('height',5);
-                                
-                             var pub = svg.selectAll('public')
-                                .data([each.values.find(x => x.type === 'public')])
-                                .enter().append('rect')
-                                .classed('public',true)
-                                .attr('id', d => values[1][0].state + '-' + d.variable.replace('E','PE'))
-                                .attr('transform', function(d){
-                                    var privateValue = values[1][0][each.values.find(x => x.type === 'private').variable.replace('E','PE')];
-                                    var publicValue =  values[1][0][each.values.find(x => x.type === 'public').variable.replace('E','PE')];
-                                    var withValue =  values[1][0][each.values.find(x => x.type === 'with').variable.replace('E','PE')];
-                                    return `translate(${scale(maxWithout) + scale(withValue - publicValue)}, 0)`;
-                                })
-                                .attr('width', d => scale(values[1][0][d.variable.replace('E','PE')]) )
-                                .attr('height',5);
-
-                       
-                        } else {
-                            var unspecified = svg.selectAll('unspecified')
-                                .data([each.values.find(x => x.type === 'without')])
-                                .enter().append('rect')
-                                .classed('unspecified',true)
-                                .attr('id', d => values[1][0].state + '-' + d.variable.replace('E','PE'))
-                                .attr('transform', d => `translate(${scale(maxWithout)}, 0)`)
-                                .attr('width', d => scale(100 - values[1][0][d.variable.replace('E','PE')]) )
-                                .attr('height',5)
-                                .attr('fill',"url(#hash4_4)");
-                        }
-
-
-                    });
-                }
-                this.chartsAreCreated = true;
+                });
             }
+                this.chartsAreCreated = true;
+            
           //  this.updateCharts(values);
         },
         updateCharts(values){
