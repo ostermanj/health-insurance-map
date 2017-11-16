@@ -465,7 +465,7 @@
         getStateDetails(msg,data){
             d3.select('#sidebar-bottom').classed('load-finished', false);
             if ( controller.promises.dictionary === undefined ){
-                controller.promises.dictionary = controller.returnData('data/array-dictionary.json', null, false);
+                controller.promises.dictionary = controller.returnData('data/data-dictionary.json', null, false);
             }
             if ( data ) {
                 if ( controller.promises['state' + data] === undefined) {
