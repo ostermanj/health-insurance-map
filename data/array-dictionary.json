@@ -180,7 +180,7 @@
       "type":"category",
       "group":"DP03_0103E",
       "label":"Unemployed",
-      "name":"Civilian noninstitutionalized population from 18 to 64 years old unemployed in the labor force",
+      "name":"Civilian noninstitutionalized population from 18 to 64 years old in the labor force but unemployed",
       "description":""
    },
    {
@@ -188,7 +188,7 @@
       "type":"category",
       "group":"DP03_0103E",
       "label":"Percentage unemployed",
-      "name":"Civilian noninstitutionalized population from 18 to 64 years old unemployed in the labor force (percentage)",
+      "name":"Civilian noninstitutionalized population from 18 to 64 years old in the labor force but unemployed (percentage)",
       "description":""
    },
    {
@@ -196,7 +196,7 @@
       "type":"with",
       "group":"DP03_0109E",
       "label":"With insurance",
-      "name":"Civilian noninstitutionalized population from 18 to 64 years old unemployed in the labor force with health insurance",
+      "name":"Civilian noninstitutionalized population from 18 to 64 years old in the labor force but unemployed with health insurance",
       "description":""
    },
    {
@@ -204,7 +204,7 @@
       "type":"with",
       "group":"DP03_0109E",
       "label":"Percentage with insurance",
-      "name":"Civilian noninstitutionalized population from 18 to 64 years old unemployed in the labor force with health insurance (percentage)",
+      "name":"Civilian noninstitutionalized population from 18 to 64 years old in the labor force but unemployed with health insurance (percentage)",
       "description":""
    },
    {
@@ -212,7 +212,7 @@
       "type":"private",
       "group":"DP03_0109E",
       "label":"With private insurance",
-      "name":"Civilian noninstitutionalized population from 18 to 64 years old unemployed in the labor force with private health insurance",
+      "name":"Civilian noninstitutionalized population from 18 to 64 years old in the labor force but unemployed with private health insurance",
       "description":""
    },
    {
@@ -220,7 +220,7 @@
       "type":"private",
       "group":"DP03_0109E",
       "label":"Percentage with private insurance",
-      "name":"Civilian noninstitutionalized population from 18 to 64 years old unemployed in the labor force with privte health insurance (percentage)",
+      "name":"Civilian noninstitutionalized population from 18 to 64 years old in the labor force but unemployed with privte health insurance (percentage)",
       "description":""
    },
    {
@@ -228,7 +228,7 @@
       "type":"public",
       "group":"DP03_0109E",
       "label":"With public insurance",
-      "name":"Civilian noninstitutionalized population from 18 to 64 years old unemployed in the labor force with public health insurance",
+      "name":"Civilian noninstitutionalized population from 18 to 64 years old in the labor force but unemployed with public health insurance",
       "description":""
    },
    {
@@ -236,7 +236,7 @@
       "type":"public",
       "group":"DP03_0109E",
       "label":"Percentage with public insurance",
-      "name":"Civilian noninstitutionalized population from 18 to 64 years old unemployed in the labor force with public health insurance (percentage)",
+      "name":"Civilian noninstitutionalized population from 18 to 64 years old in the labor force but unemployed with public health insurance (percentage)",
       "description":""
    },
    {
@@ -244,7 +244,7 @@
       "type":"without",
       "group":"DP03_0109E",
       "label":"With no insurance",
-      "name":"Civilian noninstitutionalized population from 18 to 64 years old unemployed in the labor force with no health insurance",
+      "name":"Civilian noninstitutionalized population from 18 to 64 years old in the labor force but unemployed with no health insurance",
       "description":""
    },
    {
@@ -252,7 +252,7 @@
       "type":"without",
       "group":"DP03_0109E",
       "label":"Percentage with no insurance",
-      "name":"Civilian noninstitutionalized population from 18 to 64 years old unemployed in the labor force with no health insurance (percentage)",
+      "name":"Civilian noninstitutionalized population from 18 to 64 years old in the labor force but unemployed with no health insurance (percentage)",
       "description":""
    },
    {

@@ -168,6 +168,12 @@ body {
 
 /* charts */
 
+#sidebar-charts {
+    max-width: 320px;
+    margin: 0 auto;
+    padding-top: 2%;
+}
+
 #sidebar-charts > div > p {
     font-size: 1.2em;
     text-transform: uppercase;
@@ -206,12 +212,22 @@ rect.unspecified {
     cursor: pointer;
 }
 
-#sidebar-bottom svg, #sidebar-definitions {
-    max-width: 300px;
+#sidebar-definitions {
+    max-width: 320px;
 }
 
 #sidebar-definitions {
     margin: 1em auto;
+    position: relative;
+}
+
+#sidebar-definitions > div {
+    position: absolute;
+    width: 100%;
+}
+
+#sidebar-definitions #right {
+    text-align: right;
 }
 
 .definition-description, .ACS-variable {
@@ -230,4 +246,11 @@ rect.unspecified {
 
 .x-axis text {
     fill: #626262;
+}
+
+#sidebar-charts rect {
+    cursor: pointer;
+}
+#sidebar-charts rect:hover {
+    stroke: #4D90FE;
 }

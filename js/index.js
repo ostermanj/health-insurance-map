@@ -561,7 +561,8 @@
                     .classed('state-label', true)
                     .style('opacity', 0);
 
-                sidebarView.definitions = d3.select('#sidebar-definitions');
+                sidebarView.definitionsLeft = d3.select('#sidebar-definitions #left');
+                sidebarView.definitionsRight = d3.select('#sidebar-definitions #right');
                     
                 console.log(sidebarView.maxWithout, sidebarView.maxWith);
                 var rangeExtent = sidebarView.maxWithout + sidebarView.maxWith;
@@ -652,7 +653,11 @@
                         .enter().append('rect')
                         .classed('without',true)
                         .attr('transform', d => `translate(${scale(sidebarView.maxWithout)}, 0)`)
-                        .attr('height',5);
+                        .attr('height',5)
+                        .on('mouseover', function(d){
+                            sidebarView.showData(d, values[1][0][d.variable.replace('E','PE')], values[1][0][d.variable], 'left');
+                        })
+                        .on('mouseleave', sidebarView.hideData);
 
                     if ( each.values.find(x => x.type === 'private') !== undefined ) {
                         
@@ -663,24 +668,36 @@
                                 .enter().append('rect')
                                 .classed('private',true)
                                 .attr('transform', d => `translate(${scale(sidebarView.maxWithout)}, 0)`)
-                                .attr('height',5);
+                                .attr('height',5)
+                                .on('mouseover', function(d){
+                                    sidebarView.showData(d, values[1][0][d.variable.replace('E','PE')], values[1][0][d.variable]);
+                                })
+                                .on('mouseleave', sidebarView.hideData);
                                 
                                 
                         sidebarView[each.key + '-pub'] = g.selectAll('public')
                                 .data([each.values.find(x => x.type === 'public')])
                                 .enter().append('rect')
                                 .classed('public',true)
-                                .attr('height',5);
+                                .attr('height',5)
+                                .on('mouseover', function(d){
+                                    sidebarView.showData(d, values[1][0][d.variable.replace('E','PE')], values[1][0][d.variable]);
+                                })
+                                .on('mouseleave', sidebarView.hideData);
 
                    
                     } else {
                         sidebarView[each.key + '-unspecified'] = g.selectAll('unspecified')
-                                .data([each.values.find(x => x.type === 'without')])
+                                .data([each.values.find(x => x.type === 'without')]) // using `without` datum but invert below with 100 - value
                                 .enter().append('rect')
                                 .classed('unspecified',true)
                                 .attr('transform', d => `translate(${scale(sidebarView.maxWithout)}, 0)`)
                                 .attr('height',5)
-                                .attr('fill',"url(#hash4_4)");
+                                .attr('fill',"url(#hash4_4)")
+                                .on('mouseover', function(d){
+                                    sidebarView.showData({label:'With public or private insurance'}, 100 - values[1][0][d.variable.replace('E','PE')]);
+                                })
+                                .on('mouseleave', sidebarView.hideData);;
                     }
 
                     if ( i === array.length - 1 ) {
@@ -725,18 +742,35 @@
             } // end createCharts()
         }, // end sidebar.handleCharts()
         showDefinition(d){
-            sidebarView.definitions
+            sidebarView.definitionsLeft
                 .datum(d);
 
             console.log(this,d);
-            sidebarView.fadeInHTML.call(sidebarView.definitions, function(d){
+            sidebarView.fadeInHTML.call(sidebarView.definitionsLeft, function(d){
                 return d.description ? `<p class="definition-name">${d.name} <span class="ACS-variable">(${d.variable})</span></p><p class="definition-description">${d.description}</p>` : `<p class="definition-name">${d.name}</p> <span class="ACS-variable">(${d.variable})</span>`;
             });
         },
         hideDefinition(){
-            sidebarView.fadeInHTML.call(sidebarView.definitions, function(){
+            sidebarView.fadeInHTML.call(sidebarView.definitionsLeft, function(){
                 return '';
             });
+        },
+        showData(d,percent, value, leftOrRight){
+            
+            var defDiv = leftOrRight ? sidebarView.definitionsLeft : sidebarView.definitionsRight;
+            defDiv.datum(d);
+            
+            sidebarView.fadeInHTML.call(defDiv, function(d){
+                return value ? `<p>${d.label}:<br />${percent}% (${d3.format(',')(value)} people)</p>` : `<p>${d.label}:<br />${percent}%</p>` ;
+            });
+        },
+        hideData(){
+                sidebarView.fadeInHTML.call(sidebarView.definitionsLeft, function(d){
+                    return '';
+                });
+                sidebarView.fadeInHTML.call(sidebarView.definitionsRight, function(d){
+                    return '';
+                });
         }
     };
 
