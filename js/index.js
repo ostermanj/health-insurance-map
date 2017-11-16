@@ -594,19 +594,19 @@
                     })
                     .entries(series);
                     console.log(sidebarView.nested);
-                sidebarView.nested.forEach(function(each){
+                sidebarView.nested.forEach(function(each, i, array){
                     console.log(each);
                     console.log(each.values.find(x => x.type === 'without').variable);
                     
-                    var viewBox = '0 0 100 12',
-                        margin = {top:6,right:0,bottom:0,left:0}, // in percentages of the viewbox width
-                        width = 100 - margin.left - margin.right;
+                    var heightPercent = 12, // as percentage of width
+                        viewBox = i < array.length - 1 ? '0 0 100 ' + heightPercent : '0 0 100 ' + ( heightPercent + 10 ),
+                        margin = {top:6,right:0,bottom:2,left:0}, // in percentages of the viewbox width
+                        width = 100 - margin.left - margin.right,
+                        height = heightPercent - margin.top - margin.bottom;
 
                     var scale = d3.scaleLinear().domain([0,rangeExtent]).range([0,width]);
                     window.scale = scale;
                    
-
-                    
                     var svg = d3.select('#' + each.key)
                         .append('svg')
                         .attr('width', '100%')
@@ -681,6 +681,45 @@
                                 .attr('transform', d => `translate(${scale(sidebarView.maxWithout)}, 0)`)
                                 .attr('height',5)
                                 .attr('fill',"url(#hash4_4)");
+                    }
+
+                    if ( i === array.length - 1 ) {
+                        var increment = 25;
+                        if ( 100 % increment !== 0) {
+                            throw 'Increment must be factor of 100';
+                        }
+
+                        var xAxis = g.append('g')
+                            .classed('x-axis', true)
+                            .attr('transform', 'translate(0,11)');
+
+                        xAxis.append('text')
+                            .attr('transform', 'translate(' + scale(sidebarView.maxWithout + sidebarView.maxWith * 0.5) + ', 5)')
+                            .attr('font-size', '5')
+                            .attr('text-anchor', 'middle')
+                            .text('with insurance');
+
+                        xAxis.append('text')
+                            .attr('transform', 'translate(' + scale(sidebarView.maxWithout * 0.5) + ', 5)')
+                            .attr('font-size', '5')
+                            .attr('text-anchor', 'middle')
+                            .text('without insurance');
+
+                        for ( i = 0; i < (100 / increment ); i++) { 
+                            xAxis.append('text') // rightward ticks
+                                .attr('transform', 'translate(' + scale(sidebarView.maxWithout + i * increment) + ', 0)')
+                                .attr('font-size', '5')
+                                .attr('text-anchor', 'middle')
+                                .text(() => i === 0 ? i * increment + '%' : i * increment );
+
+                            if ( i > 0 && i * increment < sidebarView.maxWithout ) { // leftward ticks
+                                xAxis.append('text') // rightward ticks
+                                    .attr('transform', 'translate(' + scale(sidebarView.maxWithout - i * increment) + ', 0)')
+                                    .attr('font-size', '5')
+                                    .attr('text-anchor', 'middle')
+                                    .text(i * increment);
+                            }
+                        }
                     }
                 }); // end nested.forEach(...)
             } // end createCharts()

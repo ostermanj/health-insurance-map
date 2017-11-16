@@ -227,3 +227,7 @@ rect.unspecified {
     color: #000;
     text-decoration: none;
 }
+
+.x-axis text {
+    fill: #626262;
+}
