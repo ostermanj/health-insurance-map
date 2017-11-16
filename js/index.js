@@ -561,7 +561,8 @@
                     .classed('state-label', true)
                     .style('opacity', 0);
 
-                sidebarView.definitions = d3.select('#sidebar-definitions');
+                sidebarView.definitionsLeft = d3.select('#sidebar-definitions #left');
+                sidebarView.definitionsRight = d3.select('#sidebar-definitions #right');
                     
                 console.log(sidebarView.maxWithout, sidebarView.maxWith);
                 var rangeExtent = sidebarView.maxWithout + sidebarView.maxWith;
@@ -594,19 +595,19 @@
                     })
                     .entries(series);
                     console.log(sidebarView.nested);
-                sidebarView.nested.forEach(function(each){
+                sidebarView.nested.forEach(function(each, i, array){
                     console.log(each);
                     console.log(each.values.find(x => x.type === 'without').variable);
                     
-                    var viewBox = '0 0 100 12',
-                        margin = {top:6,right:0,bottom:0,left:0}, // in percentages of the viewbox width
-                        width = 100 - margin.left - margin.right;
+                    var heightPercent = 12, // as percentage of width
+                        viewBox = i < array.length - 1 ? '0 0 100 ' + heightPercent : '0 0 100 ' + ( heightPercent + 10 ),
+                        margin = {top:6,right:0,bottom:2,left:0}, // in percentages of the viewbox width
+                        width = 100 - margin.left - margin.right,
+                        height = heightPercent - margin.top - margin.bottom;
 
                     var scale = d3.scaleLinear().domain([0,rangeExtent]).range([0,width]);
                     window.scale = scale;
                    
-
-                    
                     var svg = d3.select('#' + each.key)
                         .append('svg')
                         .attr('width', '100%')
@@ -652,7 +653,11 @@
                         .enter().append('rect')
                         .classed('without',true)
                         .attr('transform', d => `translate(${scale(sidebarView.maxWithout)}, 0)`)
-                        .attr('height',5);
+                        .attr('height',5)
+                        .on('mouseover', function(d){
+                            sidebarView.showData(d, values[1][0][d.variable.replace('E','PE')], values[1][0][d.variable], 'left');
+                        })
+                        .on('mouseleave', sidebarView.hideData);
 
                     if ( each.values.find(x => x.type === 'private') !== undefined ) {
                         
@@ -663,41 +668,109 @@
                                 .enter().append('rect')
                                 .classed('private',true)
                                 .attr('transform', d => `translate(${scale(sidebarView.maxWithout)}, 0)`)
-                                .attr('height',5);
+                                .attr('height',5)
+                                .on('mouseover', function(d){
+                                    sidebarView.showData(d, values[1][0][d.variable.replace('E','PE')], values[1][0][d.variable]);
+                                })
+                                .on('mouseleave', sidebarView.hideData);
                                 
                                 
                         sidebarView[each.key + '-pub'] = g.selectAll('public')
                                 .data([each.values.find(x => x.type === 'public')])
                                 .enter().append('rect')
                                 .classed('public',true)
-                                .attr('height',5);
+                                .attr('height',5)
+                                .on('mouseover', function(d){
+                                    sidebarView.showData(d, values[1][0][d.variable.replace('E','PE')], values[1][0][d.variable]);
+                                })
+                                .on('mouseleave', sidebarView.hideData);
 
                    
                     } else {
                         sidebarView[each.key + '-unspecified'] = g.selectAll('unspecified')
-                                .data([each.values.find(x => x.type === 'without')])
+                                .data([each.values.find(x => x.type === 'without')]) // using `without` datum but invert below with 100 - value
                                 .enter().append('rect')
                                 .classed('unspecified',true)
                                 .attr('transform', d => `translate(${scale(sidebarView.maxWithout)}, 0)`)
                                 .attr('height',5)
-                                .attr('fill',"url(#hash4_4)");
+                                .attr('fill',"url(#hash4_4)")
+                                .on('mouseover', function(d){
+                                    sidebarView.showData({label:'With public or private insurance'}, 100 - values[1][0][d.variable.replace('E','PE')]);
+                                })
+                                .on('mouseleave', sidebarView.hideData);;
+                    }
+
+                    if ( i === array.length - 1 ) {
+                        var increment = 25;
+                        if ( 100 % increment !== 0) {
+                            throw 'Increment must be factor of 100';
+                        }
+
+                        var xAxis = g.append('g')
+                            .classed('x-axis', true)
+                            .attr('transform', 'translate(0,11)');
+
+                        xAxis.append('text')
+                            .attr('transform', 'translate(' + scale(sidebarView.maxWithout + sidebarView.maxWith * 0.5) + ', 5)')
+                            .attr('font-size', '5')
+                            .attr('text-anchor', 'middle')
+                            .text('with insurance');
+
+                        xAxis.append('text')
+                            .attr('transform', 'translate(' + scale(sidebarView.maxWithout * 0.5) + ', 5)')
+                            .attr('font-size', '5')
+                            .attr('text-anchor', 'middle')
+                            .text('without insurance');
+
+                        for ( i = 0; i < (100 / increment ); i++) { 
+                            xAxis.append('text') // rightward ticks
+                                .attr('transform', 'translate(' + scale(sidebarView.maxWithout + i * increment) + ', 0)')
+                                .attr('font-size', '5')
+                                .attr('text-anchor', 'middle')
+                                .text(() => i === 0 ? i * increment + '%' : i * increment );
+
+                            if ( i > 0 && i * increment < sidebarView.maxWithout ) { // leftward ticks
+                                xAxis.append('text') // rightward ticks
+                                    .attr('transform', 'translate(' + scale(sidebarView.maxWithout - i * increment) + ', 0)')
+                                    .attr('font-size', '5')
+                                    .attr('text-anchor', 'middle')
+                                    .text(i * increment);
+                            }
+                        }
                     }
                 }); // end nested.forEach(...)
             } // end createCharts()
         }, // end sidebar.handleCharts()
         showDefinition(d){
-            sidebarView.definitions
+            sidebarView.definitionsLeft
                 .datum(d);
 
             console.log(this,d);
-            sidebarView.fadeInHTML.call(sidebarView.definitions, function(d){
+            sidebarView.fadeInHTML.call(sidebarView.definitionsLeft, function(d){
                 return d.description ? `<p class="definition-name">${d.name} <span class="ACS-variable">(${d.variable})</span></p><p class="definition-description">${d.description}</p>` : `<p class="definition-name">${d.name}</p> <span class="ACS-variable">(${d.variable})</span>`;
             });
         },
         hideDefinition(){
-            sidebarView.fadeInHTML.call(sidebarView.definitions, function(){
+            sidebarView.fadeInHTML.call(sidebarView.definitionsLeft, function(){
                 return '';
             });
+        },
+        showData(d,percent, value, leftOrRight){
+            
+            var defDiv = leftOrRight ? sidebarView.definitionsLeft : sidebarView.definitionsRight;
+            defDiv.datum(d);
+            
+            sidebarView.fadeInHTML.call(defDiv, function(d){
+                return value ? `<p>${d.label}:<br />${percent}% (${d3.format(',')(value)} people)</p>` : `<p>${d.label}:<br />${percent}%</p>` ;
+            });
+        },
+        hideData(){
+                sidebarView.fadeInHTML.call(sidebarView.definitionsLeft, function(d){
+                    return '';
+                });
+                sidebarView.fadeInHTML.call(sidebarView.definitionsRight, function(d){
+                    return '';
+                });
         }
     };
 
