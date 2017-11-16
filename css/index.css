@@ -89,7 +89,7 @@ body {
     max-width: 425px;
     min-width: 320px;
     flex-grow: 100;
-    background-color: #CAD2D3;
+    background-color: #d8dfe0;
     border-right: 8px solid white;
     position: relative;
 }
@@ -168,17 +168,17 @@ body {
 
 /* charts */
 
-#sidebar-bottom > div > p {
+#sidebar-charts > div > p {
     font-size: 1.2em;
     text-transform: uppercase;
 }
 
-#sidebar-bottom > div > div > p {
+#sidebar-charts > div > div > p {
     font-size: 1.1em;
     padding-left: 1em;
 }
 
-#sidebar-bottom > div > div > div > p {
+#sidebar-charts > div > div > div > p {
     padding-left: 2em;
 }
 
@@ -201,9 +201,29 @@ rect.unspecified {
 }
 
 .category-label {
-    fill: #767676;
+    fill: #626262;
+    text-decoration: underline;
+    cursor: pointer;
 }
 
-#sidebar-bottom svg {
+#sidebar-bottom svg, #sidebar-definitions {
     max-width: 300px;
+}
+
+#sidebar-definitions {
+    margin: 1em auto;
+}
+
+.definition-description, .ACS-variable {
+    color: #626262;
+}
+
+.state-label {
+    font-weight: bold;
+}
+
+.category-label:hover {
+    font-weight: bold;
+    color: #000;
+    text-decoration: none;
 }

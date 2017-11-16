@@ -131,6 +131,7 @@
             console.log(values);
             var stateData = values[0],
                 countyData = values[1];
+            mapView.countyDate = countyData;
             createStops.call(this);
             createLegend.call(this);
             mapView.maps.forEach(each => {
@@ -554,15 +555,18 @@
             }            
             function createCharts(){
 
-                sidebarView.countryLabel = d3.select('#sidebar-bottom')
+                sidebarView.countryLabel = d3.select('#sidebar-charts')
                     .append('p')
                     .html(values[1][0].NAME)
+                    .classed('state-label', true)
                     .style('opacity', 0);
+
+                sidebarView.definitions = d3.select('#sidebar-definitions');
                     
                 console.log(sidebarView.maxWithout, sidebarView.maxWith);
                 var rangeExtent = sidebarView.maxWithout + sidebarView.maxWith;
                 var categories = values[0].filter(x => x.type === 'category' && x.variable.indexOf('PE') === -1 );
-                var catDivs = d3.select('#sidebar-bottom')
+                var catDivs = d3.select('#sidebar-charts')
                     .selectAll('categories')
                     .data(categories)
                     .enter().append('div')
@@ -639,7 +643,9 @@
                         .attr('font-size', 5.5)
                         .attr('x', scale(sidebarView.maxWithout))
                         .attr('transform', 'translate(0,-2)')
-                        .classed('category-label', true);
+                        .classed('category-label', true)
+                        .on('mouseover', sidebarView.showDefinition)
+                        .on('mouseleave', sidebarView.hideDefinition);
 
                     sidebarView[each.key + '-without']  = g.selectAll('without')
                         .data([each.values.find(x => x.type === 'without')])
@@ -679,6 +685,20 @@
                 }); // end nested.forEach(...)
             } // end createCharts()
         }, // end sidebar.handleCharts()
+        showDefinition(d){
+            sidebarView.definitions
+                .datum(d);
+
+            console.log(this,d);
+            sidebarView.fadeInHTML.call(sidebarView.definitions, function(d){
+                return d.description ? `<p class="definition-name">${d.name} <span class="ACS-variable">(${d.variable})</span></p><p class="definition-description">${d.description}</p>` : `<p class="definition-name">${d.name}</p> <span class="ACS-variable">(${d.variable})</span>`;
+            });
+        },
+        hideDefinition(){
+            sidebarView.fadeInHTML.call(sidebarView.definitions, function(){
+                return '';
+            });
+        }
     };
 
     const controller = {
