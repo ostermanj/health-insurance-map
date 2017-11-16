@@ -411,7 +411,26 @@
         }
     };
 
-    const sidebarView = {
+    var sidebarView = {
+        fadeInHTML(callback){
+            console.log(this);
+            this.transition()
+                .duration(sidebarView.duration / 2)
+                .ease(d3.easeCubicOut)
+                .style('opacity', 0)
+                .on('end', function(d){
+                    var $this = d3.select(this);
+                    $this.html(function(){
+                        return callback(d);
+                    });
+                    $this.transition()
+                        .duration(sidebarView.duration / 2)
+                        .ease(d3.easeCubicOut)
+                        .style('opacity', 1);
+                });
+        },
+        duration: 500,
+        transition: d3.transition().duration(500).ease(d3.easeCubicOut),
         chartsAreCreated: false,
         initializeDropdown(data){
             setSubs([
@@ -444,6 +463,7 @@
                 .classed('load-finished', true);
         },
         getStateDetails(msg,data){
+            d3.select('#sidebar-bottom').classed('load-finished', false);
             if ( controller.promises.dictionary === undefined ){
                 controller.promises.dictionary = controller.returnData('data/array-dictionary.json', null, false);
             }
@@ -452,19 +472,20 @@
                     controller.promises['state' + data] = controller.returnACSData('https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0095E,DP03_0095PE,DP03_0096E,DP03_0096PE,DP03_0097E,DP03_0097PE,DP03_0098E,DP03_0098PE,DP03_0099E,DP03_0099PE,DP03_0100E,DP03_0100PE,DP03_0101E,DP03_0101PE,DP03_0102E,DP03_0102PE,DP03_0103E,DP03_0103PE,DP03_0104E,DP03_0104PE,DP03_0105E,DP03_0105PE,DP03_0106E,DP03_0106PE,DP03_0107E,DP03_0107PE,DP03_0108E,DP03_0108PE,DP03_0109E,DP03_0109PE,DP03_0110E,DP03_0110PE,DP03_0111E,DP03_0111PE,DP03_0112E,DP03_0112PE,DP03_0113E,DP03_0113PE,DP03_0114E,DP03_0114PE,DP03_0115E,DP03_0115PE,DP03_0116E,DP03_0116PE,DP03_0117E,DP03_0117PE,DP03_0118E,DP03_0118PE,NAME&for=state:' + data + '&key=');
                 }
                 Promise.all([controller.promises.dictionary, controller.promises['state' + data]]).then((values) =>{
-                  sidebarView.createCharts(values);
+                  sidebarView.handleCharts(values);
                   console.log(values);
                 });
                 
             }
         },
-        createCharts(values){ // values[0] is the dictionary; [1][0] is the state's data
-        console.log(values[1][0]);
-
-        
-
+        handleCharts(values){ // values[0] is the dictionary; [1][0] is the state's data
+            
+            console.log(values[1][0]);
+            
+            
             
             if ( !this.chartsAreCreated ){
+                console.log('charts not created');
                 var noInsuranceVars = values[0].filter(x => x.type === 'without' && x.variable.indexOf('PE') !== -1).map(x => x.variable);
                 var withInsuranceVars = values[0].filter(x => x.type === 'with' && x.variable.indexOf('PE') !== -1).map(x => x.variable);
                 var noInsData = controller.returnACSData('https://api.census.gov/data/2015/acs/acs5/profile?get=' + noInsuranceVars.join() + ',NAME&for=state:*&key=', null, false);
@@ -482,23 +503,64 @@
                         },[]);
                     }
 
-                    var maxWithout = d3.max(reduceValues(values[0])),
-                        maxWith =    d3.max(reduceValues(values[1]));
+                    sidebarView.maxWithout = d3.max(reduceValues(values[0]))
+                    sidebarView.maxWith =    d3.max(reduceValues(values[1]));
 
-                    nextStep(maxWithout, maxWith);
+                    createCharts(sidebarView.maxWithout, sidebarView.maxWith);
+                    this.chartsAreCreated = true;
+                    updateCharts();
                 });
-            } // end if ( !this.chartsAreCreated )
-            
-            function nextStep(maxWithout, maxWith){
+            } else { // end if ( !this.chartsAreCreated )
+                console.log('charts already created');
+                updateCharts();
+            }
 
-                var countryLabel = d3.select('#sidebar-bottom')
-                    .append('p')
-                    .text(values[1][0].NAME);
-
+            function updateCharts(){
+                sidebarView.fadeInHTML.call(sidebarView.countryLabel, function(d){
+                    return values[1][0].NAME;
+                });
                 
+                sidebarView.nested.forEach(function(each){
                     
-                console.log(maxWithout, maxWith);
-                var rangeExtent = maxWithout + maxWith;
+                    sidebarView[each.key + '-without']
+                        .transition(sidebarView.transition)
+                        .attr('transform', d => `translate(${scale(sidebarView.maxWithout) - scale(values[1][0][d.variable.replace('E','PE')]) }, 0)`)
+                        .attr('width', d => { console.log(d.variable.replace('E','PE'));
+                            return scale(values[1][0][d.variable.replace('E','PE')]);
+                        });
+
+                    if ( each.values.find(x => x.type === 'private') !== undefined ) {
+                    sidebarView[each.key + '-pub']
+                        .transition(sidebarView.transition)
+                        .attr('transform', function(d){
+                                var privateValue = values[1][0][each.values.find(x => x.type === 'private').variable.replace('E','PE')];
+                                var publicValue =  values[1][0][each.values.find(x => x.type === 'public').variable.replace('E','PE')];
+                                var withValue =  values[1][0][each.values.find(x => x.type === 'with').variable.replace('E','PE')];
+                                return `translate(${scale(sidebarView.maxWithout) + scale(withValue - publicValue)}, 0)`;
+                            })
+                        .attr('width', d => scale(values[1][0][d.variable.replace('E','PE')]) )
+                        
+                    sidebarView[each.key + '-priv']
+                        .transition(sidebarView.transition)
+                        .attr('width', d => scale(values[1][0][d.variable.replace('E','PE')]) );
+
+                    } else {
+                        sidebarView[each.key + '-unspecified']
+                            .transition(sidebarView.transition)
+                            .attr('width', d => scale(100 - values[1][0][d.variable.replace('E','PE')]) )
+                    }
+                });
+                d3.select('#sidebar-bottom').classed('load-finished', true);
+            }            
+            function createCharts(){
+
+                sidebarView.countryLabel = d3.select('#sidebar-bottom')
+                    .append('p')
+                    .html(values[1][0].NAME)
+                    .style('opacity', 0);
+                    
+                console.log(sidebarView.maxWithout, sidebarView.maxWith);
+                var rangeExtent = sidebarView.maxWithout + sidebarView.maxWith;
                 var categories = values[0].filter(x => x.type === 'category' && x.variable.indexOf('PE') === -1 );
                 var catDivs = d3.select('#sidebar-bottom')
                     .selectAll('categories')
@@ -522,13 +584,14 @@
 
                 var series = values[0].filter(x => x.type !== 'category' && x.variable.indexOf('PE') === -1 );
                 console.log(series);
-                var nested = d3.nest()
+                sidebarView.nested = d3.nest()
                     .key(function(d){
                         return d.group;
                     })
                     .entries(series);
-                    console.log(nested);
-                nested.forEach(function(each){
+                    console.log(sidebarView.nested);
+                sidebarView.nested.forEach(function(each){
+                    console.log(each);
                     console.log(each.values.find(x => x.type === 'without').variable);
                     
                     var viewBox = '0 0 100 12',
@@ -574,74 +637,52 @@
                     g.append('text')
                         .text(values[0].find(x => x.variable === each.values.find(x => x.type === 'without').group).label)
                         .attr('font-size', 5.5)
-                        .attr('x', scale(maxWithout))
+                        .attr('x', scale(sidebarView.maxWithout))
                         .attr('transform', 'translate(0,-2)')
                         .classed('category-label', true);
 
-                    var without = g.selectAll('without')
+                    sidebarView[each.key + '-without']  = g.selectAll('without')
                         .data([each.values.find(x => x.type === 'without')])
                         .enter().append('rect')
                         .classed('without',true)
-                        .attr('id', d => values[1][0].state + '-' + d.variable.replace('E','PE'))
-                        .attr('transform', d => `translate(${scale(maxWithout) - scale(values[1][0][d.variable.replace('E','PE')]) }, 0)`)
-                        .attr('width', d => { console.log(d.variable.replace('E','PE'));
-                            return scale(values[1][0][d.variable.replace('E','PE')]);
-                        })
+                        .attr('transform', d => `translate(${scale(sidebarView.maxWithout)}, 0)`)
                         .attr('height',5);
 
                     if ( each.values.find(x => x.type === 'private') !== undefined ) {
                         
 
 
-                         var priv = g.selectAll('private')
-                            .data([each.values.find(x => x.type === 'private')])
-                            .enter().append('rect')
-                            .classed('private',true)
-                            .attr('id', d => values[1][0].state + '-' + d.variable.replace('E','PE'))
-                            .attr('transform', d => `translate(${scale(maxWithout)}, 0)`)
-                            .attr('width', d => scale(values[1][0][d.variable.replace('E','PE')]) )
-                            .attr('height',5);
-                            
-                         var pub = g.selectAll('public')
-                            .data([each.values.find(x => x.type === 'public')])
-                            .enter().append('rect')
-                            .classed('public',true)
-                            .attr('id', d => values[1][0].state + '-' + d.variable.replace('E','PE'))
-                            .attr('transform', function(d){
-                                var privateValue = values[1][0][each.values.find(x => x.type === 'private').variable.replace('E','PE')];
-                                var publicValue =  values[1][0][each.values.find(x => x.type === 'public').variable.replace('E','PE')];
-                                var withValue =  values[1][0][each.values.find(x => x.type === 'with').variable.replace('E','PE')];
-                                return `translate(${scale(maxWithout) + scale(withValue - publicValue)}, 0)`;
-                            })
-                            .attr('width', d => scale(values[1][0][d.variable.replace('E','PE')]) )
-                            .attr('height',5);
+                        sidebarView[each.key + '-priv'] = g.selectAll('private')
+                                .data([each.values.find(x => x.type === 'private')])
+                                .enter().append('rect')
+                                .classed('private',true)
+                                .attr('transform', d => `translate(${scale(sidebarView.maxWithout)}, 0)`)
+                                .attr('height',5);
+                                
+                                
+                        sidebarView[each.key + '-pub'] = g.selectAll('public')
+                                .data([each.values.find(x => x.type === 'public')])
+                                .enter().append('rect')
+                                .classed('public',true)
+                                .attr('height',5);
 
                    
                     } else {
-                        var unspecified = g.selectAll('unspecified')
-                            .data([each.values.find(x => x.type === 'without')])
-                            .enter().append('rect')
-                            .classed('unspecified',true)
-                            .attr('id', d => values[1][0].state + '-' + d.variable.replace('E','PE'))
-                            .attr('transform', d => `translate(${scale(maxWithout)}, 0)`)
-                            .attr('width', d => scale(100 - values[1][0][d.variable.replace('E','PE')]) )
-                            .attr('height',5)
-                            .attr('fill',"url(#hash4_4)");
+                        sidebarView[each.key + '-unspecified'] = g.selectAll('unspecified')
+                                .data([each.values.find(x => x.type === 'without')])
+                                .enter().append('rect')
+                                .classed('unspecified',true)
+                                .attr('transform', d => `translate(${scale(sidebarView.maxWithout)}, 0)`)
+                                .attr('height',5)
+                                .attr('fill',"url(#hash4_4)");
                     }
-
-
-                });
-            }
-                this.chartsAreCreated = true;
-            
-          //  this.updateCharts(values);
-        },
-        updateCharts(values){
-
-        }
+                }); // end nested.forEach(...)
+            } // end createCharts()
+        }, // end sidebar.handleCharts()
     };
 
     const controller = {
+
         controlState: StateModule(),
         controlSubs: SubscribeModule(),
         init(){
