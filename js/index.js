@@ -469,48 +469,49 @@
                 controller.promises.dictionary = controller.returnData('data/data-dictionary.json', null, false);
             }
             if ( data ) {
-                if ( controller.promises['state' + data] === undefined) {
-                    controller.promises['state' + data] = controller.returnACSData('https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0095E,DP03_0095PE,DP03_0096E,DP03_0096PE,DP03_0097E,DP03_0097PE,DP03_0098E,DP03_0098PE,DP03_0099E,DP03_0099PE,DP03_0100E,DP03_0100PE,DP03_0101E,DP03_0101PE,DP03_0102E,DP03_0102PE,DP03_0103E,DP03_0103PE,DP03_0104E,DP03_0104PE,DP03_0105E,DP03_0105PE,DP03_0106E,DP03_0106PE,DP03_0107E,DP03_0107PE,DP03_0108E,DP03_0108PE,DP03_0109E,DP03_0109PE,DP03_0110E,DP03_0110PE,DP03_0111E,DP03_0111PE,DP03_0112E,DP03_0112PE,DP03_0113E,DP03_0113PE,DP03_0114E,DP03_0114PE,DP03_0115E,DP03_0115PE,DP03_0116E,DP03_0116PE,DP03_0117E,DP03_0117PE,DP03_0118E,DP03_0118PE,NAME&for=state:' + data + '&key=');
+                if ( controller.promises['stateDetails'] === undefined) {
+                    controller.promises['stateDetails'] = controller.returnACSData(
+                        'https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0095E,DP03_0095PE,DP03_0096E,DP03_0096PE,DP03_0097E,DP03_0097PE,DP03_0098E,DP03_0098PE,DP03_0099E,DP03_0099PE,DP03_0100E,DP03_0100PE,DP03_0101E,DP03_0101PE,DP03_0102E,DP03_0102PE,DP03_0103E,DP03_0103PE,DP03_0104E,DP03_0104PE,DP03_0105E,DP03_0105PE,DP03_0106E,DP03_0106PE,DP03_0107E,DP03_0107PE,DP03_0108E,DP03_0108PE,DP03_0109E,DP03_0109PE,DP03_0110E,DP03_0110PE,DP03_0111E,DP03_0111PE,DP03_0112E,DP03_0112PE,DP03_0113E,DP03_0113PE,DP03_0114E,DP03_0114PE,DP03_0115E,DP03_0115PE,DP03_0116E,DP03_0116PE,DP03_0117E,DP03_0117PE,DP03_0118E,DP03_0118PE,NAME&for=state:*&key=',
+                        'state' // returns data nested by state
+                    );   
                 }
-                Promise.all([controller.promises.dictionary, controller.promises['state' + data]]).then((values) =>{
+                Promise.all([controller.promises.dictionary, controller.promises['stateDetails']]).then((values) =>{
                   sidebarView.handleCharts(values);
                   console.log(values);
                 });
                 
             }
         },
-        handleCharts(values){ // values[0] is the dictionary; [1][0] is the state's data
-            
-            console.log(values[1][0]);
-            
+        handleCharts(values){ // values[0] is the dictionary; [1] is an object of arrays keyed by state ID (ie '08')
+            console.log(getState('activeStateFP'));
+            var dictionary = values[0],
+                stateDetails = values[1],
+                data = values[1][getState('activeStateFP')][0];
+            console.log(stateDetails,data);
             
             
             if ( !this.chartsAreCreated ){
                 console.log('charts not created');
-                var noInsuranceVars = values[0].filter(x => x.type === 'without' && x.variable.indexOf('PE') !== -1).map(x => x.variable);
-                var withInsuranceVars = values[0].filter(x => x.type === 'with' && x.variable.indexOf('PE') !== -1).map(x => x.variable);
-                var noInsData = controller.returnACSData('https://api.census.gov/data/2015/acs/acs5/profile?get=' + noInsuranceVars.join() + ',NAME&for=state:*&key=', null, false);
-                var withInsData = controller.returnACSData('https://api.census.gov/data/2015/acs/acs5/profile?get=' + withInsuranceVars.join() + ',NAME&for=state:*&key=', null, false);
-                Promise.all([noInsData,withInsData]).then(values => {
-
-                    function reduceValues(value) {
-                        return value.reduce((acc, cur) => {
-                            Object.keys(cur).forEach(each => {
-                                if ( cur[each].indexOf('.') !== -1 ){
-                                    acc.push(+cur[each]);
-                                }
-                            });
-                            return acc;
-                        },[]);
-                    }
-
-                    sidebarView.maxWithout = d3.max(reduceValues(values[0]))
-                    sidebarView.maxWith =    d3.max(reduceValues(values[1]));
-
-                    createCharts(sidebarView.maxWithout, sidebarView.maxWith);
-                    this.chartsAreCreated = true;
-                    updateCharts();
+                
+                // create array of variable names with type 'without'
+                var noInsuranceVars = dictionary.filter(x => x.type === 'without' && x.variable.indexOf('PE') !== -1).map(x => x.variable);
+                // create array of variable names with type 'with'
+                var withInsuranceVars = dictionary.filter(x => x.type === 'with' && x.variable.indexOf('PE') !== -1).map(x => x.variable);
+                var insuranceValues = [[],[]];
+                Object.keys(stateDetails).forEach(key => {
+                    noInsuranceVars.map(each => {
+                        insuranceValues[0].push(+stateDetails[key][0][each]);
+                    });
+                    withInsuranceVars.map(each => {
+                        insuranceValues[1].push(+stateDetails[key][0][each]);
+                    });
                 });
+                console.log(insuranceValues);
+                sidebarView.maxWithout = d3.max(insuranceValues[0]);
+                sidebarView.maxWith =    d3.max(insuranceValues[1]);
+                createCharts(sidebarView.maxWithout, sidebarView.maxWith);
+                this.chartsAreCreated = true;
+                updateCharts();
             } else { // end if ( !this.chartsAreCreated )
                 console.log('charts already created');
                 updateCharts();
@@ -518,37 +519,37 @@
 
             function updateCharts(){
                 sidebarView.fadeInHTML.call(sidebarView.countryLabel, function(d){
-                    return values[1][0].NAME;
+                    return data.NAME;
                 });
                 
                 sidebarView.nested.forEach(function(each){
                     
                     sidebarView[each.key + '-without']
                         .transition(sidebarView.transition)
-                        .attr('transform', d => `translate(${scale(sidebarView.maxWithout) - scale(values[1][0][d.variable.replace('E','PE')]) }, 0)`)
+                        .attr('transform', d => `translate(${scale(sidebarView.maxWithout) - scale(data[d.variable.replace('E','PE')]) }, 0)`)
                         .attr('width', d => { console.log(d.variable.replace('E','PE'));
-                            return scale(values[1][0][d.variable.replace('E','PE')]);
+                            return scale(data[d.variable.replace('E','PE')]);
                         });
 
                     if ( each.values.find(x => x.type === 'private') !== undefined ) {
                     sidebarView[each.key + '-pub']
                         .transition(sidebarView.transition)
                         .attr('transform', function(d){
-                                var privateValue = values[1][0][each.values.find(x => x.type === 'private').variable.replace('E','PE')];
-                                var publicValue =  values[1][0][each.values.find(x => x.type === 'public').variable.replace('E','PE')];
-                                var withValue =  values[1][0][each.values.find(x => x.type === 'with').variable.replace('E','PE')];
+                                var privateValue = data[each.values.find(x => x.type === 'private').variable.replace('E','PE')];
+                                var publicValue =  data[each.values.find(x => x.type === 'public').variable.replace('E','PE')];
+                                var withValue =  data[each.values.find(x => x.type === 'with').variable.replace('E','PE')];
                                 return `translate(${scale(sidebarView.maxWithout) + scale(withValue - publicValue)}, 0)`;
                             })
-                        .attr('width', d => scale(values[1][0][d.variable.replace('E','PE')]) )
+                        .attr('width', d => scale(data[d.variable.replace('E','PE')]) )
                         
                     sidebarView[each.key + '-priv']
                         .transition(sidebarView.transition)
-                        .attr('width', d => scale(values[1][0][d.variable.replace('E','PE')]) );
+                        .attr('width', d => scale(data[d.variable.replace('E','PE')]) );
 
                     } else {
                         sidebarView[each.key + '-unspecified']
                             .transition(sidebarView.transition)
-                            .attr('width', d => scale(100 - values[1][0][d.variable.replace('E','PE')]) )
+                            .attr('width', d => scale(100 - data[d.variable.replace('E','PE')]) )
                     }
                 });
                 d3.select('#sidebar-bottom').classed('load-finished', true);
@@ -557,7 +558,7 @@
 
                 sidebarView.countryLabel = d3.select('#sidebar-charts')
                     .append('p')
-                    .html(values[1][0].NAME)
+                    .html(data.NAME)
                     .classed('state-label', true)
                     .style('opacity', 0);
 
@@ -566,7 +567,7 @@
                     
                 console.log(sidebarView.maxWithout, sidebarView.maxWith);
                 var rangeExtent = sidebarView.maxWithout + sidebarView.maxWith;
-                var categories = values[0].filter(x => x.type === 'category' && x.variable.indexOf('PE') === -1 );
+                var categories = dictionary.filter(x => x.type === 'category' && x.variable.indexOf('PE') === -1 );
                 var catDivs = d3.select('#sidebar-charts')
                     .selectAll('categories')
                     .data(categories)
@@ -587,7 +588,7 @@
 
 
 
-                var series = values[0].filter(x => x.type !== 'category' && x.variable.indexOf('PE') === -1 );
+                var series = dictionary.filter(x => x.type !== 'category' && x.variable.indexOf('PE') === -1 );
                 console.log(series);
                 sidebarView.nested = d3.nest()
                     .key(function(d){
@@ -640,7 +641,7 @@
                         .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
                       
                     g.append('text')
-                        .text(values[0].find(x => x.variable === each.values.find(x => x.type === 'without').group).label)
+                        .text(dictionary.find(x => x.variable === each.values.find(x => x.type === 'without').group).label)
                         .attr('font-size', 5.5)
                         .attr('x', scale(sidebarView.maxWithout))
                         .attr('transform', 'translate(0,-2)')
@@ -655,7 +656,7 @@
                         .attr('transform', d => `translate(${scale(sidebarView.maxWithout)}, 0)`)
                         .attr('height',5)
                         .on('mouseover', function(d){
-                            sidebarView.showData(d, values[1][0][d.variable.replace('E','PE')], values[1][0][d.variable], 'left');
+                            sidebarView.showData(d, data[d.variable.replace('E','PE')], data[d.variable], 'left');
                         })
                         .on('mouseleave', sidebarView.hideData);
 
@@ -670,7 +671,7 @@
                                 .attr('transform', d => `translate(${scale(sidebarView.maxWithout)}, 0)`)
                                 .attr('height',5)
                                 .on('mouseover', function(d){
-                                    sidebarView.showData(d, values[1][0][d.variable.replace('E','PE')], values[1][0][d.variable]);
+                                    sidebarView.showData(d, data[d.variable.replace('E','PE')], data[d.variable]);
                                 })
                                 .on('mouseleave', sidebarView.hideData);
                                 
@@ -681,7 +682,7 @@
                                 .classed('public',true)
                                 .attr('height',5)
                                 .on('mouseover', function(d){
-                                    sidebarView.showData(d, values[1][0][d.variable.replace('E','PE')], values[1][0][d.variable]);
+                                    sidebarView.showData(d, data[d.variable.replace('E','PE')], data[d.variable]);
                                 })
                                 .on('mouseleave', sidebarView.hideData);
 
@@ -695,7 +696,7 @@
                                 .attr('height',5)
                                 .attr('fill',"url(#hash4_4)")
                                 .on('mouseover', function(d){
-                                    sidebarView.showData({label:'With public or private insurance'}, 100 - values[1][0][d.variable.replace('E','PE')]);
+                                    sidebarView.showData({label:'With public or private insurance'}, 100 - data[d.variable.replace('E','PE')]);
                                 })
                                 .on('mouseleave', sidebarView.hideData);;
                     }
@@ -815,18 +816,18 @@
                 }, 200);
             };
         },
-        returnACSData(url, rollup, coerce){
+        returnACSData(url, nestBy, coerce){
             return new Promise((resolve,reject) => {
                 d3.json(url + censusKey, (error,data) => { 
                     if (error) {
                         console.log(error);
                         reject(error);
                     }
-                    resolve(this.returnKeyValues(data, rollup, coerce));
+                    resolve(this.returnKeyValues(data, nestBy, coerce));
                 });
             });
         },
-        returnData(url, rollup, coerce){
+        returnData(url, nestBy, coerce){
             return new Promise((resolve,reject) => {
                 d3.json(url, (error,data) => { 
                     if (error) {
@@ -837,15 +838,23 @@
                 });
             });
         },
-        returnKeyValues(values, rollup, coerce){ // coerce = BOOL coerce to num or not 
+        returnKeyValues(values, nestBy, coerce){ // coerce = BOOL coerce to num or not 
             console.log(values);
-            return values.slice(1).map(row => row.reduce(function(acc, cur, i) { // 1. params: total, currentValue, currentIndex[, arr]
+            var unnested = values.slice(1).map(row => row.reduce(function(acc, cur, i) { // 1. params: total, currentValue, currentIndex[, arr]
               acc[values[0][i]] = coerce === true ? isNaN(+cur) ? cur : +cur : cur; // 3. // acc is an object , key is corresponding value from row 0, value is current value of array
-              if ( rollup ) {
-                acc.rollup = rollup;
-              }
-              return acc;
+                return acc;
             }, {}));
+            if ( !nestBy ){
+                return unnested;
+            } else if ( typeof nestBy === 'string' ) { // ie only one bestBy field
+                return d3.nest()
+                    .key(function(d){
+                        return d[nestBy];
+                    })
+                    .object(unnested);
+            } else {
+                // TO DO: HANDLER FOR MULTIPLE NESTING
+            }
         }
     }; // end controller
 
