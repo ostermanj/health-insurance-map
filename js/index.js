@@ -384,7 +384,7 @@
                 if ( map.index > 0 ){
                     map.on('zoomend', zoomendCenter);
                 }
-                var wrapperPadding = map.index === 0 ? 10 : 0;
+                var wrapperPadding = map.index === 0 ? 30 : 0;
                 map.fitBounds(stateBounds[data], {
                     padding: wrapperPadding
                 });
@@ -464,11 +464,12 @@
                 .classed('load-finished', true);
         },
         getStateDetails(msg,data){
-            d3.select('#sidebar-bottom').classed('load-finished', false);
+            console.log(data);
             if ( controller.promises.dictionary === undefined ){
                 controller.promises.dictionary = controller.returnData('data/data-dictionary.json', null, false);
             }
             if ( data ) {
+            d3.select('#sidebar-bottom').classed('load-finished', false);
                 if ( controller.promises['stateDetails'] === undefined) {
                     controller.promises['stateDetails'] = controller.returnACSData(
                         'https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0095E,DP03_0095PE,DP03_0096E,DP03_0096PE,DP03_0097E,DP03_0097PE,DP03_0098E,DP03_0098PE,DP03_0099E,DP03_0099PE,DP03_0100E,DP03_0100PE,DP03_0101E,DP03_0101PE,DP03_0102E,DP03_0102PE,DP03_0103E,DP03_0103PE,DP03_0104E,DP03_0104PE,DP03_0105E,DP03_0105PE,DP03_0106E,DP03_0106PE,DP03_0107E,DP03_0107PE,DP03_0108E,DP03_0108PE,DP03_0109E,DP03_0109PE,DP03_0110E,DP03_0110PE,DP03_0111E,DP03_0111PE,DP03_0112E,DP03_0112PE,DP03_0113E,DP03_0113PE,DP03_0114E,DP03_0114PE,DP03_0115E,DP03_0115PE,DP03_0116E,DP03_0116PE,DP03_0117E,DP03_0117PE,DP03_0118E,DP03_0118PE,NAME&for=state:*&key=',
@@ -511,6 +512,7 @@
                 sidebarView.maxWith =    d3.max(insuranceValues[1]);
                 createCharts(sidebarView.maxWithout, sidebarView.maxWith);
                 this.chartsAreCreated = true;
+                createChartLegend();
                 updateCharts();
             } else { // end if ( !this.chartsAreCreated )
                 console.log('charts already created');
@@ -741,6 +743,70 @@
                     }
                 }); // end nested.forEach(...)
             } // end createCharts()
+            function createChartLegend(){
+                var chartLegendSVG = d3.select('#sidebar-charts')
+                    .append('svg')
+                    .classed('legend',true)
+                    .attr('width', '292px')
+                    .attr('height', '44px');
+                    
+
+                var pattern = chartLegendSVG.append("defs")
+                    .append("pattern")
+                        .attr('id',"hash4_4")
+                        .attr('width',"4")
+                        .attr("height","4")
+                        .attr("patternUnits","userSpaceOnUse")
+                        .attr("patternTransform","rotate(60)");
+                    
+                    pattern.append('rect')
+                        .attr("width","2")
+                        .attr("height","4")
+                        .attr("transform","translate(0,0)")
+                        .attr("fill","#2b526f");
+                    
+                    pattern.append('rect')
+                        .attr("width","2")
+                        .attr("height","4")
+                        .attr("transform","translate(2,0)")
+                        .attr("fill","#3f98da");
+
+                var chartLegendItems = chartLegendSVG.selectAll('legend-item')
+                    .data([
+                            {
+                                text: 'None',
+                                class: 'without' 
+                            },{
+                                text: 'Private',
+                                class: 'private'
+                            },{
+                                text: 'Public',
+                                class: 'public'
+                            }, {
+                                text: 'Not specified',
+                                class: 'unspecified',
+                                fill: 'url(#hash4_4)'
+                            }
+                        ])
+                    .enter().append('g')
+                    .attr('transform', (d,i) => `translate(${ 50 * i + 58 }, 10)`);
+
+                    chartLegendItems.append('rect')
+                        .attr('class', d => d.class)
+                        .attr('width', 15)
+                        .attr('height', 15)
+                        .attr('fill', d => {
+                            if ( d.fill !== undefined ){
+                                return d.fill;
+                            }
+                        });
+
+                    chartLegendItems.append('text')
+                        .attr('transform', 'translate(0,30)')
+                        .text(d => d.text);
+
+
+            }
         }, // end sidebar.handleCharts()
         showDefinition(d){
             sidebarView.definitionsLeft

@@ -212,12 +212,16 @@ rect.unspecified {
     cursor: pointer;
 }
 
+
+
 #sidebar-definitions {
     max-width: 320px;
+  
+
 }
 
 #sidebar-definitions {
-    margin: 1em auto;
+    margin: 0.5em auto;
     position: relative;
 }
 
@@ -253,4 +257,9 @@ rect.unspecified {
 }
 #sidebar-charts rect:hover {
     stroke: #4D90FE;
+}
+
+svg.legend text {
+    font-size: 14.5px;
+    fill: #626262;
 }
