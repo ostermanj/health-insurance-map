@@ -90,7 +90,7 @@
         initializeMap(options, i, resolve){
             var {container,style,bounds} = options;
             var maxBounds;
-            console.log(typeof bounds);
+            
             if ( typeof bounds === 'object' ){ // actually an array but typeof <array> === object
                 maxBounds = bounds;
             } else if ( typeof bounds === 'string' ){
@@ -112,7 +112,7 @@
         },
         resizeMaps(){
             this.maps.forEach(function(each){
-                console.log('resizing', each);
+                
                 each.fitBounds(each.getMaxBounds());
                // mapView.setOriginalCenterAndZoom(each); // THIS MAY BE TRIGGERING BEFORE THE ZOOM ENDS
             });
@@ -128,7 +128,7 @@
             }
         },
         setup(values){
-            console.log(values);
+            
             var stateData = values[0],
                 countyData = values[1];
             mapView.countyDate = countyData;
@@ -271,7 +271,7 @@
                             "url": "mapbox://mapbox.82pkq93d",
                             "name": "counties"
                         }, [ // layers
-                                    {
+                            {
                               "id": "counties",
                               "type": "fill",
                               "source": "counties",
@@ -280,6 +280,19 @@
                                   "fill-outline-color": "rgba(255,255,255,0.5)",
                                   "fill-color": "transparent"
                               },
+                              "beforeLayer": "water",
+                              "filter": ["==", "FIPS", ""]
+                          },
+                          {
+                              "id": "counties-hover",
+                              "type": "line",
+                              "source": "counties",
+                              "source-layer": "original",
+                              "paint": {
+                                    "line-color": '#4D90FE',
+                                    "line-width": 4,
+                                    "line-blur": 2
+                                },
                               "beforeLayer": "water",
                               "filter": ["==", "FIPS", ""]
                           }
@@ -355,6 +368,7 @@
             function zoomMapBackOut(index){
                 var map = mapView.maps[index];
                 map.setFilter("counties", ["==", "FIPS", ""]);
+                map.setFilter("counties-hover", ['==', "FIPS", ""]);
                 if ( map.index > 0 ){
                     map.on('zoomend', zoomendCenter);
                 }
@@ -392,9 +406,29 @@
                   [">", "FIPS", getCountyRange(data).min],
                   ["<=", "FIPS", getCountyRange(data).max]
                 ]);
+                map.on('mousemove', 'counties', function(e){
+                    mousemoveFilter(e, highlightCounty);
+                });
+
                 if ( map.getZoom() < 2 ) {
                   map.setZoom(2);
                 }                    
+            }
+            function mousemoveFilter(e, fn){
+                if ( !mapView.mousemoveActive || mapView.mousemoveActive !== e.features[0].id ){
+                    mapView.mousemoveActive = e.features[0].id;
+                    console.log(e);
+                    fn(e);
+                }
+            }
+            function highlightCounty(e) {
+                console.log(e);
+                var map = mapView.maps[getState('activeMap')];
+                map.setFilter("counties-hover", ["==", "FIPS", e.features[0].properties.FIPS]);
+                Promise.all([controller.promises.dictionary, controller.promises['countyDetails']]).then((values) =>{
+                  sidebarView.handleCharts(values, e.features[0].properties.FIPS );
+                  
+                });  
             }
             function getCountyRange(statefp) {
                 if (statefp[0] === '0'){
@@ -414,7 +448,7 @@
 
     var sidebarView = {
         fadeInHTML(callback){
-            console.log(this);
+            
             this.transition()
                 .duration(sidebarView.duration / 2)
                 .ease(d3.easeCubicOut)
@@ -441,7 +475,7 @@
                 ['activeStateFP', this.getStateDetails]
             ]);
             d3.select('#state-selector').node().onchange = function(evt){
-                console.log(this.value);
+                
                 var matchingMap = mapView.maps.find((map) => {
                     return map.originalOptions.bounds === this.value
                 });
@@ -464,7 +498,7 @@
                 .classed('load-finished', true);
         },
         getStateDetails(msg,data){
-            console.log(data);
+            
             if ( controller.promises.dictionary === undefined ){
                 controller.promises.dictionary = controller.returnData('data/data-dictionary.json', null, false);
             }
@@ -476,23 +510,35 @@
                         'state' // returns data nested by state
                     );   
                 }
+                if ( controller.promises['countyDetails'] === undefined) {
+                    controller.promises['countyDetails'] = controller.returnACSData(
+                        'https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0095E,DP03_0095PE,DP03_0096E,DP03_0096PE,DP03_0097E,DP03_0097PE,DP03_0098E,DP03_0098PE,DP03_0099E,DP03_0099PE,DP03_0100E,DP03_0100PE,DP03_0101E,DP03_0101PE,DP03_0102E,DP03_0102PE,DP03_0103E,DP03_0103PE,DP03_0104E,DP03_0104PE,DP03_0105E,DP03_0105PE,DP03_0106E,DP03_0106PE,DP03_0107E,DP03_0107PE,DP03_0108E,DP03_0108PE,DP03_0109E,DP03_0109PE,DP03_0110E,DP03_0110PE,DP03_0111E,DP03_0111PE,DP03_0112E,DP03_0112PE,DP03_0113E,DP03_0113PE,DP03_0114E,DP03_0114PE,DP03_0115E,DP03_0115PE,DP03_0116E,DP03_0116PE,DP03_0117E,DP03_0117PE,DP03_0118E,DP03_0118PE,NAME&for=county:*&key=',
+                        function(d){ return d.state + d.county;} 
+                    );   
+                }
                 Promise.all([controller.promises.dictionary, controller.promises['stateDetails']]).then((values) =>{
                   sidebarView.handleCharts(values);
-                  console.log(values);
+                  
                 });
-                
+                controller.promises['countyDetails'].then(values => console.log(values));
             }
         },
-        handleCharts(values){ // values[0] is the dictionary; [1] is an object of arrays keyed by state ID (ie '08')
-            console.log(getState('activeStateFP'));
+        handleCharts(values, county){ // values[0] is the dictionary; [1] is an object of arrays keyed by state ID (ie '08')
+            
             var dictionary = values[0],
                 stateDetails = values[1],
+                data;
+                
+            if ( !county ){
                 data = values[1][getState('activeStateFP')][0];
-            console.log(stateDetails,data);
+            } else {
+                data = values[1][county][0];
+            }
+            
             
             
             if ( !this.chartsAreCreated ){
-                console.log('charts not created');
+                
                 
                 // create array of variable names with type 'without'
                 var noInsuranceVars = dictionary.filter(x => x.type === 'without' && x.variable.indexOf('PE') !== -1).map(x => x.variable);
@@ -507,7 +553,7 @@
                         insuranceValues[1].push(+stateDetails[key][0][each]);
                     });
                 });
-                console.log(insuranceValues);
+                
                 sidebarView.maxWithout = d3.max(insuranceValues[0]);
                 sidebarView.maxWith =    d3.max(insuranceValues[1]);
                 createCharts(sidebarView.maxWithout, sidebarView.maxWith);
@@ -515,59 +561,73 @@
                 createChartLegend();
                 updateCharts();
             } else { // end if ( !this.chartsAreCreated )
-                console.log('charts already created');
+                
                 updateCharts();
             }
 
-            function updateCharts(){
-                sidebarView.fadeInHTML.call(sidebarView.countryLabel, function(d){
-                    return data.NAME;
-                });
+            function updateCharts(newData = data){
                 
                 sidebarView.nested.forEach(function(each){
-                    
+                     if ( sidebarView[each.key + '-without'].isInTransition || ( sidebarView[each.key + '-priv'] && sidebarView[each.key + '-priv'].isInTransition ) || ( sidebarView[each.key + '-pub'] && sidebarView[each.key + '-pub'].isInTransition ) || ( sidebarView[each.key + '-unspecified'] && sidebarView[each.key + '-unspecified'].isInTransition )){
+                        if ( sidebarView[each.key + '-transitionTimeout'] ){
+                            clearTimeout(sidebarView[each.key + '-transitionTimeout']);
+                        }
+                        sidebarView[each.key + '-transitionTimeout'] = setTimeout(function(){
+                            updateCharts(newData);
+                        },100); 
+                    } else {
+                    sidebarView[each.key + '-without'].isInTransition = true;
                     sidebarView[each.key + '-without']
                         .transition(sidebarView.transition)
                         .attr('transform', d => `translate(${scale(sidebarView.maxWithout) - scale(data[d.variable.replace('E','PE')]) }, 0)`)
-                        .attr('width', d => { console.log(d.variable.replace('E','PE'));
+                        .attr('width', d => { 
                             return scale(data[d.variable.replace('E','PE')]);
+                        })
+                        .on('end', function(){
+                            sidebarView[each.key + '-without'].isInTransition = false;
                         });
 
                     if ( each.values.find(x => x.type === 'private') !== undefined ) {
-                    sidebarView[each.key + '-pub']
-                        .transition(sidebarView.transition)
-                        .attr('transform', function(d){
-                                var privateValue = data[each.values.find(x => x.type === 'private').variable.replace('E','PE')];
-                                var publicValue =  data[each.values.find(x => x.type === 'public').variable.replace('E','PE')];
-                                var withValue =  data[each.values.find(x => x.type === 'with').variable.replace('E','PE')];
-                                return `translate(${scale(sidebarView.maxWithout) + scale(withValue - publicValue)}, 0)`;
-                            })
-                        .attr('width', d => scale(data[d.variable.replace('E','PE')]) )
-                        
-                    sidebarView[each.key + '-priv']
-                        .transition(sidebarView.transition)
-                        .attr('width', d => scale(data[d.variable.replace('E','PE')]) );
-
+                        sidebarView[each.key + '-pub'].isInTransition = true;
+                        sidebarView[each.key + '-pub']
+                            .transition(sidebarView.transition)
+                            .attr('transform', function(d){
+                                    var privateValue = data[each.values.find(x => x.type === 'private').variable.replace('E','PE')];
+                                    var publicValue =  data[each.values.find(x => x.type === 'public').variable.replace('E','PE')];
+                                    var withValue =  data[each.values.find(x => x.type === 'with').variable.replace('E','PE')];
+                                    return `translate(${scale(sidebarView.maxWithout) + scale(withValue - publicValue)}, 0)`;
+                                })
+                            .attr('width', d => scale(data[d.variable.replace('E','PE')]))
+                            .on('end', function(){
+                                sidebarView[each.key + '-pub'].isInTransition = false;
+                            });
+                        sidebarView[each.key + '-priv'].isInTransition = true;    
+                        sidebarView[each.key + '-priv']
+                            .transition(sidebarView.transition)
+                            .attr('width', d => scale(data[d.variable.replace('E','PE')]) )
+                            .on('end', function(){
+                                sidebarView[each.key + '-priv'].isInTransition = false;
+                            });
                     } else {
+                        sidebarView[each.key + '-unspecified'].isInTransition = true;
                         sidebarView[each.key + '-unspecified']
                             .transition(sidebarView.transition)
                             .attr('width', d => scale(100 - data[d.variable.replace('E','PE')]) )
+                            .on('end', function(){
+                                sidebarView[each.key + '-unspecified'].isInTransition = false;
+                            });
+                        }
                     }
                 });
+                
                 d3.select('#sidebar-bottom').classed('load-finished', true);
             }            
             function createCharts(){
 
-                sidebarView.countryLabel = d3.select('#sidebar-charts')
-                    .append('p')
-                    .html(data.NAME)
-                    .classed('state-label', true)
-                    .style('opacity', 0);
-
                 sidebarView.definitionsLeft = d3.select('#sidebar-definitions #left');
                 sidebarView.definitionsRight = d3.select('#sidebar-definitions #right');
                     
-                console.log(sidebarView.maxWithout, sidebarView.maxWith);
+                
                 var rangeExtent = sidebarView.maxWithout + sidebarView.maxWith;
                 var categories = dictionary.filter(x => x.type === 'category' && x.variable.indexOf('PE') === -1 );
                 var catDivs = d3.select('#sidebar-charts')
@@ -583,7 +643,7 @@
                    
                 catDivs.each(function(d){
                     if ( d.variable !== d.group ){
-                        console.log(this);
+                        
                         document.getElementById(d.group).appendChild(this);
                     }
                 });
@@ -591,16 +651,16 @@
 
 
                 var series = dictionary.filter(x => x.type !== 'category' && x.variable.indexOf('PE') === -1 );
-                console.log(series);
+                
                 sidebarView.nested = d3.nest()
                     .key(function(d){
                         return d.group;
                     })
                     .entries(series);
-                    console.log(sidebarView.nested);
+                    
                 sidebarView.nested.forEach(function(each, i, array){
-                    console.log(each);
-                    console.log(each.values.find(x => x.type === 'without').variable);
+                    
+                    
                     
                     var heightPercent = 12, // as percentage of width
                         viewBox = i < array.length - 1 ? '0 0 100 ' + heightPercent : '0 0 100 ' + ( heightPercent + 10 ),
@@ -789,7 +849,7 @@
                             }
                         ])
                     .enter().append('g')
-                    .attr('transform', (d,i) => `translate(${ 50 * i + 58 }, 10)`);
+                    .attr('transform', (d,i) => `translate(${ 50 * i + 68 }, 10)`);
 
                     chartLegendItems.append('rect')
                         .attr('class', d => d.class)
@@ -812,7 +872,7 @@
             sidebarView.definitionsLeft
                 .datum(d);
 
-            console.log(this,d);
+            
             sidebarView.fadeInHTML.call(sidebarView.definitionsLeft, function(d){
                 return d.description ? `<p class="definition-name">${d.name} <span class="ACS-variable">(${d.variable})</span></p><p class="definition-description">${d.description}</p>` : `<p class="definition-name">${d.name}</p> <span class="ACS-variable">(${d.variable})</span>`;
             });
@@ -864,7 +924,7 @@
                          this.promises.countyData,
                          Promise.all(this.promises.maps)])
                 .then((values)=>{
-                    console.log(values);
+                    
                     mapView.setup(values);
                 });
              
@@ -876,17 +936,18 @@
                     clearTimeout(timeOut);
                 }
                 timeOut = setTimeout(function(){
-                    console.log('resized');
+                    
                     mapView.checkMapViewAspect();
                     mapView.resizeMaps();
                 }, 200);
             };
         },
         returnACSData(url, nestBy, coerce){
+            
             return new Promise((resolve,reject) => {
                 d3.json(url + censusKey, (error,data) => { 
                     if (error) {
-                        console.log(error);
+                        
                         reject(error);
                     }
                     resolve(this.returnKeyValues(data, nestBy, coerce));
@@ -897,7 +958,7 @@
             return new Promise((resolve,reject) => {
                 d3.json(url, (error,data) => { 
                     if (error) {
-                        console.log(error);
+                        
                         reject(error);
                     }
                     resolve(data);
@@ -905,17 +966,25 @@
             });
         },
         returnKeyValues(values, nestBy, coerce){ // coerce = BOOL coerce to num or not 
-            console.log(values);
             var unnested = values.slice(1).map(row => row.reduce(function(acc, cur, i) { // 1. params: total, currentValue, currentIndex[, arr]
               acc[values[0][i]] = coerce === true ? isNaN(+cur) ? cur : +cur : cur; // 3. // acc is an object , key is corresponding value from row 0, value is current value of array
                 return acc;
             }, {}));
+            console.log(unnested);
             if ( !nestBy ){
                 return unnested;
-            } else if ( typeof nestBy === 'string' ) { // ie only one bestBy field
+            } else if ( typeof nestBy === 'string' ) { // ie only one nestBy field
+                console.log('string', nestBy);
                 return d3.nest()
                     .key(function(d){
                         return d[nestBy];
+                    })
+                    .object(unnested);
+            } else if ( typeof nestBy === 'function' ){
+                console.log('function', nestBy);
+                return d3.nest()
+                    .key(function(d){
+                        return nestBy(d);
                     })
                     .object(unnested);
             } else {

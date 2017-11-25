@@ -96,16 +96,51 @@ body {
 
 #sidebar-top {
     min-height: 154px;
+    border-bottom: 8px solid white;
 }
 
-.sidebar-section:not(:last-child) {
-        border-bottom: 8px solid white;
-    }
+
+
+
 
 #state-status {
     position: absolute;
     left: 0;
     bottom: 0;
+}
+
+#state-selector {
+    box-sizing: border-box;
+    -webkit-transition: all 0.1s ease-out;
+    -moz-transition: all 0.1s ease-out;
+    -o-transition: all 0.1s ease-out;
+    transition: all 0.1s ease-out;
+    width: 100%;
+    -webkit-appearance: none;
+    border-radius: 0;
+    height: 2em;
+    outline: none;
+    background-color: #fff;
+    background-image: url(/assets/triangle-down.svg);
+    background-repeat: no-repeat;
+    background-position: 97% 50%;
+    text-indent: 10px;
+    border: none;
+    background-color: #d8dfe0;
+    font: inherit;
+    background-size: 10px;
+    border-bottom: 1px solid white;
+}
+
+.visuallyhidden {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
 }
 
 .map-overlay {
@@ -171,7 +206,6 @@ body {
 #sidebar-charts {
     max-width: 320px;
     margin: 0 auto;
-    padding-top: 2%;
 }
 
 #sidebar-charts > div > p {
@@ -236,10 +270,6 @@ rect.unspecified {
 
 .definition-description, .ACS-variable {
     color: #626262;
-}
-
-.state-label {
-    font-weight: bold;
 }
 
 .category-label:hover {
