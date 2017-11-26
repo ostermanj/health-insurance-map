@@ -522,7 +522,7 @@
             }
         },
         handleCharts(values, county){ // values[0] is the dictionary; [1] is an object of arrays keyed by state ID (ie '08')
-            
+            console.log('handleCharts');
             var dictionary = values[0],
                 stateDetails = values[1],
                 countyDetails = values[2] ? values[2] : null,
@@ -532,6 +532,7 @@
                 data = values[1][getState('activeStateFP')][0];
             } else {
                 data = values[1][county][0];
+                updateCountyLabel();
             }
             
             
@@ -563,17 +564,27 @@
                 
                 updateCharts();
             }
-
+            function updateCountyLabel(){
+                console.log(data, sidebarView.countyLabel);
+                sidebarView.countyLabel
+                    .datum(data)
+                    .text(d => {
+                        return d.NAME.replace(/,.*/,'');
+                    });
+            }
             function updateCharts(){
                 sidebarView.nested.forEach(function(each){
-                     if ( sidebarView[each.key + '-without'].isInTransition || ( sidebarView[each.key + '-priv'] && sidebarView[each.key + '-priv'].isInTransition ) || ( sidebarView[each.key + '-pub'] && sidebarView[each.key + '-pub'].isInTransition ) || ( sidebarView[each.key + '-unspecified'] && sidebarView[each.key + '-unspecified'].isInTransition )){
+                 /*    if ( sidebarView[each.key + '-without'].isInTransition || ( sidebarView[each.key + '-priv'] && sidebarView[each.key + '-priv'].isInTransition ) || ( sidebarView[each.key + '-pub'] && sidebarView[each.key + '-pub'].isInTransition ) || ( sidebarView[each.key + '-unspecified'] && sidebarView[each.key + '-unspecified'].isInTransition )){
                         if ( sidebarView[each.key + '-transitionTimeout'] ){
+                            console.log(sidebarView[each.key + '-transitionTimeout']);
                             clearTimeout(sidebarView[each.key + '-transitionTimeout']);
                         }
                         sidebarView[each.key + '-transitionTimeout'] = setTimeout(function(){
                             updateCharts();
                         },100); 
-                    } else {
+                    } else {*/
+                    console.log(data, county);
+                    
                     sidebarView[each.key + '-without'].isInTransition = true;
                     sidebarView[each.key + '-without']
                         .on('mouseover', function(d){
@@ -627,7 +638,7 @@
                                 sidebarView[each.key + '-unspecified'].isInTransition = false;
                             });
                         }
-                    }
+                   // }
                 });
                 
                 d3.select('#sidebar-bottom').classed('load-finished', true);
@@ -636,6 +647,7 @@
 
                 sidebarView.definitionsLeft = d3.select('#sidebar-definitions #left');
                 sidebarView.definitionsRight = d3.select('#sidebar-definitions #right');
+                sidebarView.countyLabel = d3.select('#county-label').datum(data);
                     
                 
                 var rangeExtent = sidebarView.maxWithout + sidebarView.maxWith;
@@ -715,6 +727,7 @@
                     g.append('text')
                         .text(dictionary.find(x => x.variable === each.values.find(x => x.type === 'without').group).label)
                         .attr('font-size', 5.5)
+                        .attr('text-anchor', 'middle')
                         .attr('x', scale(sidebarView.maxWithout))
                         .attr('transform', 'translate(0,-2)')
                         .classed('category-label', true)
