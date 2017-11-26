@@ -289,7 +289,7 @@
                               "source": "counties",
                               "source-layer": "original",
                               "paint": {
-                                    "line-color": '#4D90FE',
+                                    "line-color": '#584dfe',
                                     "line-width": 4,
                                     "line-blur": 2
                                 },
@@ -409,6 +409,11 @@
                 map.on('mousemove', 'counties', function(e){
                     mousemoveFilter(e, highlightCounty);
                 });
+                map.on('mouseleave', 'counties', function(e){
+                    map.setFilter("counties-hover", ["==", "FIPS", ""]);
+                    mapView.mousemoveActive = null;
+                    sidebarView.getStateDetails('activeStateFP', getState('activeStateFP'));
+                });
 
                 if ( map.getZoom() < 2 ) {
                   map.setZoom(2);
@@ -495,33 +500,42 @@
             d3.select('#dropdown-div')
                 .classed('load-finished', true);
         },
-        getStateDetails(msg,data){
-            
+        getStateDetails(msg,data){ // when a state is selected, msg = 'activeStateFP'; data = stringified id number
+                                   // when state is deselected (zoom back out),  msg = 'activeStateFP'; data = null
+                                   // when charts are first initialized to US, no msg, no data
+            console.log(msg, data);
+          /*  if ( msg === 'activeStateFP' && !data ){
+                return;
+            }*/
+            d3.select('#sidebar-bottom').classed('load-finished', false);
             if ( controller.promises.dictionary === undefined ){
                 controller.promises.dictionary = controller.returnData('data/data-dictionary.json', null, false);
             }
-            if ( data ) {
-            d3.select('#sidebar-bottom').classed('load-finished', false);
+            if ( controller.promises['countyDetails'] === undefined) {
+                controller.promises['countyDetails'] = controller.returnACSData(
+                    'https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0095E,DP03_0095PE,DP03_0096E,DP03_0096PE,DP03_0097E,DP03_0097PE,DP03_0098E,DP03_0098PE,DP03_0099E,DP03_0099PE,DP03_0100E,DP03_0100PE,DP03_0101E,DP03_0101PE,DP03_0102E,DP03_0102PE,DP03_0103E,DP03_0103PE,DP03_0104E,DP03_0104PE,DP03_0105E,DP03_0105PE,DP03_0106E,DP03_0106PE,DP03_0107E,DP03_0107PE,DP03_0108E,DP03_0108PE,DP03_0109E,DP03_0109PE,DP03_0110E,DP03_0110PE,DP03_0111E,DP03_0111PE,DP03_0112E,DP03_0112PE,DP03_0113E,DP03_0113PE,DP03_0114E,DP03_0114PE,DP03_0115E,DP03_0115PE,DP03_0116E,DP03_0116PE,DP03_0117E,DP03_0117PE,DP03_0118E,DP03_0118PE,NAME&for=county:*&key=',
+                    function(d){ return d.state + d.county;} 
+                );   
+            }
+            if ( data && data !== 'null' ) { // ie is a activeStateFP
                 if ( controller.promises['stateDetails'] === undefined) {
                     controller.promises['stateDetails'] = controller.returnACSData(
                         'https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0095E,DP03_0095PE,DP03_0096E,DP03_0096PE,DP03_0097E,DP03_0097PE,DP03_0098E,DP03_0098PE,DP03_0099E,DP03_0099PE,DP03_0100E,DP03_0100PE,DP03_0101E,DP03_0101PE,DP03_0102E,DP03_0102PE,DP03_0103E,DP03_0103PE,DP03_0104E,DP03_0104PE,DP03_0105E,DP03_0105PE,DP03_0106E,DP03_0106PE,DP03_0107E,DP03_0107PE,DP03_0108E,DP03_0108PE,DP03_0109E,DP03_0109PE,DP03_0110E,DP03_0110PE,DP03_0111E,DP03_0111PE,DP03_0112E,DP03_0112PE,DP03_0113E,DP03_0113PE,DP03_0114E,DP03_0114PE,DP03_0115E,DP03_0115PE,DP03_0116E,DP03_0116PE,DP03_0117E,DP03_0117PE,DP03_0118E,DP03_0118PE,NAME&for=state:*&key=',
                         'state' // returns data nested by state
                     );   
                 }
-                if ( controller.promises['countyDetails'] === undefined) {
-                    controller.promises['countyDetails'] = controller.returnACSData(
-                        'https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0095E,DP03_0095PE,DP03_0096E,DP03_0096PE,DP03_0097E,DP03_0097PE,DP03_0098E,DP03_0098PE,DP03_0099E,DP03_0099PE,DP03_0100E,DP03_0100PE,DP03_0101E,DP03_0101PE,DP03_0102E,DP03_0102PE,DP03_0103E,DP03_0103PE,DP03_0104E,DP03_0104PE,DP03_0105E,DP03_0105PE,DP03_0106E,DP03_0106PE,DP03_0107E,DP03_0107PE,DP03_0108E,DP03_0108PE,DP03_0109E,DP03_0109PE,DP03_0110E,DP03_0110PE,DP03_0111E,DP03_0111PE,DP03_0112E,DP03_0112PE,DP03_0113E,DP03_0113PE,DP03_0114E,DP03_0114PE,DP03_0115E,DP03_0115PE,DP03_0116E,DP03_0116PE,DP03_0117E,DP03_0117PE,DP03_0118E,DP03_0118PE,NAME&for=county:*&key=',
-                        function(d){ return d.state + d.county;} 
-                    );   
-                }
                 Promise.all([controller.promises.dictionary, controller.promises['stateDetails'], controller.promises['countyDetails']]).then((values) =>{
                   sidebarView.handleCharts(values);
-                  
                 });
-               // controller.promises['countyDetails'].then(values => console.log(values));
+            } else { // ie is initial country-level load
+               Promise.all([controller.promises.dictionary, controller.promises['USDetails'], controller.promises['countyDetails']]).then((values) =>{
+                  sidebarView.handleCharts(values, 'US');
+                }); 
             }
         },
-        handleCharts(values, county){ // values[0] is the dictionary; [1] is an object of arrays keyed by state ID (ie '08')
+        handleCharts(values, county){ // values[0] is the dictionary;
+                                      // [1] is an object of arrays keyed by state ID (ie '08') OR single object of US data
+                                      // [2] is county-level details used to set bounds 
             console.log('handleCharts');
             var dictionary = values[0],
                 stateDetails = values[1],
@@ -529,7 +543,13 @@
                 data;
                 
             if ( !county ){
+                if ( values[1][getState('activeStateFP')] === undefined ){ // ie dropdown back to select state
+
+                }
                 data = values[1][getState('activeStateFP')][0];
+                clearCountyLabel();
+            } else if ( county === 'US' ) {
+                data = values[1][0];
             } else {
                 data = values[1][county][0];
                 updateCountyLabel();
@@ -567,12 +587,20 @@
             function updateCountyLabel(){
                 console.log(data, sidebarView.countyLabel);
                 sidebarView.countyLabel
-                    .datum(data)
-                    .text(d => {
-                        return d.NAME.replace(/,.*/,'');
-                    });
+                    .datum(data);
+                sidebarView.fadeInHTML.call(sidebarView.countyLabel, function(d){
+                    return d.NAME.replace(/,.*/,'');
+                });
+            }
+            function clearCountyLabel(){
+                sidebarView.fadeInHTML.call(sidebarView.countyLabel, function(){
+                    return '&nbsp;';
+                });
             }
             function updateCharts(){
+                if ( county === 'US' ){
+                    updateCountyLabel();
+                }
                 sidebarView.nested.forEach(function(each){
                  /*    if ( sidebarView[each.key + '-without'].isInTransition || ( sidebarView[each.key + '-priv'] && sidebarView[each.key + '-priv'].isInTransition ) || ( sidebarView[each.key + '-pub'] && sidebarView[each.key + '-pub'].isInTransition ) || ( sidebarView[each.key + '-unspecified'] && sidebarView[each.key + '-unspecified'].isInTransition )){
                         if ( sidebarView[each.key + '-transitionTimeout'] ){
@@ -928,6 +956,11 @@
             });
             this.promises.stateData = this.returnACSData('https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0099PE,NAME&for=state:*&key=', null, false);
             this.promises.countyData = this.returnACSData('https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0099PE,NAME&for=county:*&key=', null, false);
+            this.promises.USDetails = this.returnACSData(
+                'https://api.census.gov/data/2015/acs/acs5/profile?get=DP03_0095E,DP03_0095PE,DP03_0096E,DP03_0096PE,DP03_0097E,DP03_0097PE,DP03_0098E,DP03_0098PE,DP03_0099E,DP03_0099PE,DP03_0100E,DP03_0100PE,DP03_0101E,DP03_0101PE,DP03_0102E,DP03_0102PE,DP03_0103E,DP03_0103PE,DP03_0104E,DP03_0104PE,DP03_0105E,DP03_0105PE,DP03_0106E,DP03_0106PE,DP03_0107E,DP03_0107PE,DP03_0108E,DP03_0108PE,DP03_0109E,DP03_0109PE,DP03_0110E,DP03_0110PE,DP03_0111E,DP03_0111PE,DP03_0112E,DP03_0112PE,DP03_0113E,DP03_0113PE,DP03_0114E,DP03_0114PE,DP03_0115E,DP03_0115PE,DP03_0116E,DP03_0116PE,DP03_0117E,DP03_0117PE,DP03_0118E,DP03_0118PE,NAME&for=us:*&key=',
+                null,
+                false
+            );   
             Promise.all([this.promises.stateData]).then((values) => {
                 sidebarView.initializeDropdown(values[0]);
             });
@@ -938,6 +971,8 @@
                     
                     mapView.setup(values);
                 });
+            
+            sidebarView.getStateDetails(); // inititiates the charts
              
         },
         setRezizeWatcher(){
