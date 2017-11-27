@@ -536,7 +536,6 @@
         handleCharts(values, county){ // values[0] is the dictionary;
                                       // [1] is an object of arrays keyed by state ID (ie '08') OR single object of US data
                                       // [2] is county-level details used to set bounds 
-            console.log('handleCharts');
             var dictionary = values[0],
                 stateDetails = values[1],
                 countyDetails = values[2] ? values[2] : null,
@@ -585,7 +584,6 @@
                 updateCharts();
             }
             function updateCountyLabel(){
-                console.log(data, sidebarView.countyLabel);
                 sidebarView.countyLabel
                     .datum(data);
                 sidebarView.fadeInHTML.call(sidebarView.countyLabel, function(d){
@@ -598,78 +596,68 @@
                 });
             }
             function updateCharts(){
-                if ( county === 'US' ){
-                    updateCountyLabel();
-                }
-                sidebarView.nested.forEach(function(each){
-                 /*    if ( sidebarView[each.key + '-without'].isInTransition || ( sidebarView[each.key + '-priv'] && sidebarView[each.key + '-priv'].isInTransition ) || ( sidebarView[each.key + '-pub'] && sidebarView[each.key + '-pub'].isInTransition ) || ( sidebarView[each.key + '-unspecified'] && sidebarView[each.key + '-unspecified'].isInTransition )){
-                        if ( sidebarView[each.key + '-transitionTimeout'] ){
-                            console.log(sidebarView[each.key + '-transitionTimeout']);
-                            clearTimeout(sidebarView[each.key + '-transitionTimeout']);
-                        }
-                        sidebarView[each.key + '-transitionTimeout'] = setTimeout(function(){
-                            updateCharts();
-                        },100); 
-                    } else {*/
-                    console.log(data, county);
-                    
-                    sidebarView[each.key + '-without'].isInTransition = true;
-                    sidebarView[each.key + '-without']
-                        .on('mouseover', function(d){
-                            sidebarView.showData(d, data[d.variable.replace('E','PE')], data[d.variable], 'left');
-                        })
-                        .transition(sidebarView.transition)
-                        .attr('transform', d => `translate(${scale(sidebarView.maxWithout) - scale(data[d.variable.replace('E','PE')]) }, 0)`)
-                        .attr('width', d => { 
-                            return scale(data[d.variable.replace('E','PE')]);
-                        })
-                        .on('end', function(){
-                            sidebarView[each.key + '-without'].isInTransition = false;
-                        });
+                if ( sidebarView.isInTransition ){
+                    sidebarView.isOnHold = true;
+                } else {
+                    if ( county === 'US' ){
+                        updateCountyLabel();
+                    }
+                    sidebarView.nested.forEach(function(each, i, array){
+                        sidebarView[each.key + '-without']
+                            .on('mouseover', function(d){
+                                sidebarView.showData(d, data[d.variable.replace('E','PE')], data[d.variable], 'left');
+                            })
+                            .transition(sidebarView.transition)
+                            .on('start', function(){
+                                if ( i === 0 ){
+                                    sidebarView.isInTransition = true;
+                                }
+                            })
+                            .attr('transform', d => `translate(${scale(sidebarView.maxWithout) - scale(data[d.variable.replace('E','PE')]) }, 0)`)
+                            .attr('width', d => { 
+                                return scale(data[d.variable.replace('E','PE')]);
+                            });
 
-                    if ( each.values.find(x => x.type === 'private') !== undefined ) {
-                        sidebarView[each.key + '-pub'].isInTransition = true;
-                        sidebarView[each.key + '-pub']
-                            .on('mouseover', function(d){
-                                sidebarView.showData(d, data[d.variable.replace('E','PE')], data[d.variable]);
-                            })
-                            .transition(sidebarView.transition)
-                            .attr('transform', function(d){
-                                    var privateValue = data[each.values.find(x => x.type === 'private').variable.replace('E','PE')];
-                                    var publicValue =  data[each.values.find(x => x.type === 'public').variable.replace('E','PE')];
-                                    var withValue =  data[each.values.find(x => x.type === 'with').variable.replace('E','PE')];
-                                    return `translate(${scale(sidebarView.maxWithout) + scale(withValue - publicValue)}, 0)`;
+                        if ( each.values.find(x => x.type === 'private') !== undefined ) {
+                            sidebarView[each.key + '-pub']
+                                .on('mouseover', function(d){
+                                    sidebarView.showData(d, data[d.variable.replace('E','PE')], data[d.variable]);
                                 })
-                            .attr('width', d => scale(data[d.variable.replace('E','PE')]))
-                            .on('end', function(){
-                                sidebarView[each.key + '-pub'].isInTransition = false;
-                            });
-                        sidebarView[each.key + '-priv'].isInTransition = true;    
-                        sidebarView[each.key + '-priv']
-                            .on('mouseover', function(d){
-                                sidebarView.showData(d, data[d.variable.replace('E','PE')], data[d.variable]);
-                            })
-                            .transition(sidebarView.transition)
-                            .attr('width', d => scale(data[d.variable.replace('E','PE')]) )
-                            .on('end', function(){
-                                sidebarView[each.key + '-priv'].isInTransition = false;
-                            });
-                    } else {
-                        sidebarView[each.key + '-unspecified'].isInTransition = true;
-                        sidebarView[each.key + '-unspecified']
-                            .on('mouseover', function(d){
-                                sidebarView.showData({label:'With public or private insurance'}, 100 - data[d.variable.replace('E','PE')]);
-                            })
-                            .transition(sidebarView.transition)
-                            .attr('width', d => scale(100 - data[d.variable.replace('E','PE')]) )
-                            .on('end', function(){
-                                sidebarView[each.key + '-unspecified'].isInTransition = false;
-                            });
-                        }
-                   // }
-                });
+                                .transition(sidebarView.transition)
+                                .attr('transform', function(d){
+                                        var privateValue = data[each.values.find(x => x.type === 'private').variable.replace('E','PE')];
+                                        var publicValue =  data[each.values.find(x => x.type === 'public').variable.replace('E','PE')];
+                                        var withValue =  data[each.values.find(x => x.type === 'with').variable.replace('E','PE')];
+                                        return `translate(${scale(sidebarView.maxWithout) + scale(withValue - publicValue)}, 0)`;
+                                    })
+                                .attr('width', d => scale(data[d.variable.replace('E','PE')]));
+                            sidebarView[each.key + '-priv']
+                                .on('mouseover', function(d){
+                                    sidebarView.showData(d, data[d.variable.replace('E','PE')], data[d.variable]);
+                                })
+                                .transition(sidebarView.transition)
+                                .attr('width', d => scale(data[d.variable.replace('E','PE')]) );
+                        } else {
+                            sidebarView[each.key + '-unspecified']
+                                .on('mouseover', function(d){
+                                    sidebarView.showData({label:'With public or private insurance'}, 100 - data[d.variable.replace('E','PE')]);
+                                })
+                                .transition(sidebarView.transition)
+                                .attr('width', d => scale(100 - data[d.variable.replace('E','PE')]) )
+                                .on('end', function(){
+                                    if ( ++i === array.length ) {
+                                        sidebarView.isInTransition = false;
+                                        if ( sidebarView.isOnHold ) {
+                                            sidebarView.isOnHold = false;
+                                            setTimeout(updateCharts);
+                                        }
+                                    }
+                                });
+                            }
+                    });
+                    d3.select('#sidebar-bottom').classed('load-finished', true);
+                }
                 
-                d3.select('#sidebar-bottom').classed('load-finished', true);
             }            
             function createCharts(){
 
