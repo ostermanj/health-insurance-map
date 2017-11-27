@@ -188,20 +188,20 @@
             }
 
             function createLegend(){
-                this.legend = d3.select('#sidebar-top')
-                    .append('div')
-                    .attr('id','legend');
+                this.legend = d3.select('#legend');
 
                 var legend = this.legend;
 
                 legend   
-                    .append('p')
-                    .text('Percent without health insurance');
+                    .append('h2')
+                    .attr('class','legend-title')
+                    .html('Percentage without health insurance');
 
                 var legendDivs = legend
                     .selectAll('legendDiv')
                     .data(this.legendRange.slice(0,-1))
-                    .enter().append('div');
+                    .enter().append('div')
+                    .attr('class', 'flex end');
 
                 legendDivs.append('span')
                     .attr('class','legend-key')
@@ -215,10 +215,6 @@
 
                 this.legendSpans = legendDivs.append('span');
                 this.updateLegend();    
-
-                legend
-                    .append('p')
-                    .text('Source: ACS 2011–2015 5-year estimates');
             }
         },
         updateLegend(msg,data){
@@ -232,7 +228,7 @@
             d3.select('#legend').node().parentNode.classList.remove('load-finished');
             var scale = data === 'county' ? mapView.scaleCounty : mapView.scaleState;
             sidebarView.fadeInHTML.call(mapView.legendSpans, function(d,i){
-                return d3.format(',.1f')(scale.invertExtent(d)[0]) + '&ndash;' + d3.format(',.1f')(scale.invertExtent(mapView.mapRange[i * 2 + 1])[1]);
+                return '<span class="legend-item-min">' + d3.format(',.1f')(scale.invertExtent(d)[0]) + '</span>&ndash;<span class="legend-item-max">' + d3.format(',.1f')(scale.invertExtent(mapView.mapRange[i * 2 + 1])[1]) + '</span>';
             });
             d3.select('#legend').node().parentNode.classList.add('load-finished');
         },
@@ -596,7 +592,7 @@
                 sidebarView.countyLabel
                     .datum(data);
                 sidebarView.fadeInHTML.call(sidebarView.countyLabel, function(d){
-                    return d.NAME.replace(/,.*/,'');
+                    return d.NAME !== 'United States' ? d.NAME.replace(/,.*/,'') : '&nbsp;';
                 });
             }
             function clearCountyLabel(){
@@ -717,7 +713,8 @@
                         viewBox = i < array.length - 1 ? '0 0 100 ' + heightPercent : '0 0 100 ' + ( heightPercent + 10 ),
                         margin = {top:6,right:0,bottom:2,left:0}, // in percentages of the viewbox width
                         width = 100 - margin.left - margin.right,
-                        height = heightPercent - margin.top - margin.bottom;
+                        height = heightPercent - margin.top - margin.bottom,
+                        rectHeight = 4;
 
                     var scale = d3.scaleLinear().domain([0,rangeExtent]).range([0,width]);
                     window.scale = scale;
@@ -768,7 +765,7 @@
                         .enter().append('rect')
                         .classed('without',true)
                         .attr('transform', d => `translate(${scale(sidebarView.maxWithout)}, 0)`)
-                        .attr('height',5)
+                        .attr('height',rectHeight)
                         .on('mouseleave', sidebarView.hideData);
 
                     if ( each.values.find(x => x.type === 'private') !== undefined ) {
@@ -780,7 +777,7 @@
                                 .enter().append('rect')
                                 .classed('private',true)
                                 .attr('transform', d => `translate(${scale(sidebarView.maxWithout)}, 0)`)
-                                .attr('height',5)
+                                .attr('height',rectHeight)
                                 .on('mouseleave', sidebarView.hideData);
                                 
                                 
@@ -788,7 +785,7 @@
                                 .data([each.values.find(x => x.type === 'public')])
                                 .enter().append('rect')
                                 .classed('public',true)
-                                .attr('height',5)
+                                .attr('height',rectHeight)
                                 .on('mouseleave', sidebarView.hideData);
 
                    
@@ -798,7 +795,7 @@
                                 .enter().append('rect')
                                 .classed('unspecified',true)
                                 .attr('transform', d => `translate(${scale(sidebarView.maxWithout)}, 0)`)
-                                .attr('height',5)
+                                .attr('height',rectHeight)
                                 .attr('fill',"url(#hash4_4)")
                                 .on('mouseleave', sidebarView.hideData);;
                     }
@@ -871,7 +868,10 @@
                         .attr("transform","translate(2,0)")
                         .attr("fill","#3f98da");
 
-                var chartLegendItems = chartLegendSVG.selectAll('legend-item')
+                var chartLegendContent = chartLegendSVG.append('g')
+                    .attr('transform','translate(-114,0)');
+
+                var chartLegendItems = chartLegendContent.selectAll('legend-item')
                     .data([
                             {
                                 text: 'None',
@@ -889,7 +889,7 @@
                             }
                         ])
                     .enter().append('g')
-                    .attr('transform', (d,i) => `translate(${ 50 * i + 68 }, 10)`);
+                    .attr('transform', (d,i) => `translate(${ 70 * i + 146 }, 10)`);
 
                     chartLegendItems.append('rect')
                         .attr('class', d => d.class)
@@ -902,7 +902,8 @@
                         });
 
                     chartLegendItems.append('text')
-                        .attr('transform', 'translate(0,30)')
+                        .attr('transform', 'translate(7,30)')
+                        .attr('text-anchor','middle')
                         .text(d => d.text);
 
 
