@@ -81,7 +81,8 @@
             setSubs([
                 ['activeStateFP', mapView.zoomInMapHandler],
                 ['activeMap', mapView.zoomInMapHandler],
-                ['activeStateFP', mapView.updateLegend]
+                ['activeStateFP', mapView.updateLegend],
+                ['legendScale', mapView.changeLegendScale]
             ]);
             this.wrapper = document.getElementById('map-view-wrapper');
             this.el = document.getElementById('map-view');
@@ -221,8 +222,16 @@
             }
         },
         updateLegend(msg,data){
-            var scale = ( msg === 'activeStateFP' && data !== null) ? mapView.scaleCounty : mapView.scaleState;
-            mapView.legendSpans.html((d, i) => {
+            if ( msg === 'activeStateFP' && data !== null && data !== 'null' ) {
+                setState('legendScale', 'county');
+            } else {
+                setState('legendScale', 'state');
+            }
+        },
+        changeLegendScale(msg,data){
+            d3.select('#legend').node().parentNode.classList.remove('load-finished');
+            var scale = data === 'county' ? mapView.scaleCounty : mapView.scaleState;
+            sidebarView.fadeInHTML.call(mapView.legendSpans, function(d,i){
                 return d3.format(',.1f')(scale.invertExtent(d)[0]) + '&ndash;' + d3.format(',.1f')(scale.invertExtent(mapView.mapRange[i * 2 + 1])[1]);
             });
             d3.select('#legend').node().parentNode.classList.add('load-finished');
@@ -456,10 +465,10 @@
                 .duration(sidebarView.duration / 2)
                 .ease(d3.easeCubicOut)
                 .style('opacity', 0)
-                .on('end', function(d){
+                .on('end', function(d,i){
                     var $this = d3.select(this);
                     $this.html(function(){
-                        return callback(d);
+                        return callback(d,i);
                     });
                     $this.transition()
                         .duration(sidebarView.duration / 2)
@@ -596,23 +605,24 @@
                 });
             }
             function updateCharts(){
-                if ( sidebarView.isInTransition ){
+             /*   if ( sidebarView.isInTransition ){
                     sidebarView.isOnHold = true;
-                } else {
+                } else {*/
                     if ( county === 'US' ){
                         updateCountyLabel();
                     }
                     sidebarView.nested.forEach(function(each, i, array){
                         sidebarView[each.key + '-without']
+                            .interrupt()
                             .on('mouseover', function(d){
                                 sidebarView.showData(d, data[d.variable.replace('E','PE')], data[d.variable], 'left');
                             })
                             .transition(sidebarView.transition)
-                            .on('start', function(){
+                            /*.on('start', function(){
                                 if ( i === 0 ){
                                     sidebarView.isInTransition = true;
                                 }
-                            })
+                            })*/
                             .attr('transform', d => `translate(${scale(sidebarView.maxWithout) - scale(data[d.variable.replace('E','PE')]) }, 0)`)
                             .attr('width', d => { 
                                 return scale(data[d.variable.replace('E','PE')]);
@@ -620,6 +630,7 @@
 
                         if ( each.values.find(x => x.type === 'private') !== undefined ) {
                             sidebarView[each.key + '-pub']
+                                .interrupt()
                                 .on('mouseover', function(d){
                                     sidebarView.showData(d, data[d.variable.replace('E','PE')], data[d.variable]);
                                 })
@@ -632,6 +643,7 @@
                                     })
                                 .attr('width', d => scale(data[d.variable.replace('E','PE')]));
                             sidebarView[each.key + '-priv']
+                                .interrupt()
                                 .on('mouseover', function(d){
                                     sidebarView.showData(d, data[d.variable.replace('E','PE')], data[d.variable]);
                                 })
@@ -639,24 +651,25 @@
                                 .attr('width', d => scale(data[d.variable.replace('E','PE')]) );
                         } else {
                             sidebarView[each.key + '-unspecified']
+                                .interrupt()
                                 .on('mouseover', function(d){
                                     sidebarView.showData({label:'With public or private insurance'}, 100 - data[d.variable.replace('E','PE')]);
                                 })
                                 .transition(sidebarView.transition)
-                                .attr('width', d => scale(100 - data[d.variable.replace('E','PE')]) )
-                                .on('end', function(){
+                                .attr('width', d => scale(100 - data[d.variable.replace('E','PE')]) );
+                               /* .on('end', function(){
                                     if ( ++i === array.length ) {
                                         sidebarView.isInTransition = false;
                                         if ( sidebarView.isOnHold ) {
                                             sidebarView.isOnHold = false;
-                                            setTimeout(updateCharts);
+                                            setTimeout(updateCharts,100);
                                         }
                                     }
-                                });
+                                });*/
                             }
                     });
                     d3.select('#sidebar-bottom').classed('load-finished', true);
-                }
+               // }
                 
             }            
             function createCharts(){
