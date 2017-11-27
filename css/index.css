@@ -28,6 +28,14 @@ h2 {
 
 }
 
+#message {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 1;
+    background-color: rgba(255,255,0,0.7);
+}
+
 .map-container, #content-wrapper {
     position: absolute;
     top:0;
@@ -353,5 +361,5 @@ svg.legend text {
     position: absolute;
     right: 25px;
     top: -26px;
-    
+
 }

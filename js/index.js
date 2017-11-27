@@ -82,11 +82,44 @@
                 ['activeStateFP', mapView.zoomInMapHandler],
                 ['activeMap', mapView.zoomInMapHandler],
                 ['activeStateFP', mapView.updateLegend],
-                ['legendScale', mapView.changeLegendScale]
+                ['legendScale', mapView.changeLegendScale],
+                ['holdCounty', mapView.holdCounty]
             ]);
             this.wrapper = document.getElementById('map-view-wrapper');
             this.el = document.getElementById('map-view');
             this.checkMapViewAspect();
+        },
+        holdCounty(msg,data){
+            if ( data ){
+                mapView.maps.forEach(map => {
+                    map.off('mousemove', 'counties', mapView.countyMouseMove);
+                    map.off('mouseleave', 'counties', mapView.countyMouseLeave);
+                    map.off('mouseup', 'counties', mapView.countyMouseUp);
+                });
+                d3.select('#map-view-wrapper').on('mouseup', releaseClick);
+                mapView.showMessage('&nbsp;Right click again to release selection&nbsp;');
+            } else {
+                console.log('release county');
+                mapView.showMessage('');
+                mapView.countyMouseLeave();
+                mapView.maps.forEach(map => {
+                    map.on('mousemove', 'counties', mapView.countyMouseMove);
+                    map.on('mouseleave', 'counties', mapView.countyMouseLeave);
+                    map.on('mouseup', 'counties', mapView.countyMouseUp);
+                });
+                d3.select('#map-view-wrapper').on('mouseup', null);
+            }
+            function releaseClick(){
+                console.log(d3.event);
+                if (d3.event.button === 2 ) { // ie is a right click
+                    setState('holdCounty', false);
+                }
+            }
+        },
+        showMessage(message){
+            sidebarView.fadeInHTML.call(d3.select('#message'), function(){
+                return message;
+            });
         },
         initializeMap(options, i, resolve){
             var {container,style,bounds} = options;
@@ -318,7 +351,7 @@
                     map.setFilter("states-join-hover", ["==", "STATEFP", ""]);  
                 });
                 map.on('click', 'states-join', e => {
-                    
+                    console.log('click');
                     setState('activeMap', map.index); // stateModule only publishes if state is new, no need for if statement
                     if ( getState('activeStateFP') !== e.features[0].properties.STATEFP ) { // if statement needed here b/c click on already active state requires special response
                         setState('activeStateFP', e.features[0].properties.STATEFP );
@@ -353,7 +386,8 @@
             }
         },
         zoomInMapHandler(msg,data){ // msg = 'activeStateFP'; data = activeStateFP OR 'activeMap'; activeMap
-            
+            console.log(msg,data); 
+            setState('holdCounty', false); 
             if ( msg === 'activeStateFP' ) {
                 if ( data === null || data === 'null' ){
                     zoomMapBackOut(getState('activeMap'));
@@ -411,32 +445,14 @@
                   [">", "FIPS", getCountyRange(data).min],
                   ["<=", "FIPS", getCountyRange(data).max]
                 ]);
-                map.on('mousemove', 'counties', function(e){
-                    mousemoveFilter(e, highlightCounty);
-                });
-                map.on('mouseleave', 'counties', function(e){
-                    map.setFilter("counties-hover", ["==", "FIPS", ""]);
-                    mapView.mousemoveActive = null;
-                    sidebarView.getStateDetails('activeStateFP', getState('activeStateFP'));
-                });
+                
+                map.on('mousemove', 'counties', mapView.countyMouseMove);
+                map.on('mouseleave', 'counties', mapView.countyMouseLeave);
+                map.on('mouseup', 'counties', mapView.countyMouseUp);
 
                 if ( map.getZoom() < 2 ) {
                   map.setZoom(2);
                 }                    
-            }
-            function mousemoveFilter(e, fn){
-                if ( !mapView.mousemoveActive || mapView.mousemoveActive !== e.features[0].id ){
-                    mapView.mousemoveActive = e.features[0].id;
-                    fn(e);
-                }
-            }
-            function highlightCounty(e) {
-                var map = mapView.maps[getState('activeMap')];
-                map.setFilter("counties-hover", ["==", "FIPS", e.features[0].properties.FIPS]);
-                Promise.all([controller.promises.dictionary, controller.promises['countyDetails']]).then((values) =>{
-                  sidebarView.handleCharts(values, e.features[0].properties.FIPS );
-                  
-                });  
             }
             function getCountyRange(statefp) {
                 if (statefp[0] === '0'){
@@ -451,6 +467,34 @@
                     }
                 }
             }
+        },
+        countyMouseUp(e){
+            if ( e.originalEvent.button === 2 ){
+                setState('holdCounty', true);
+            }
+        },
+        countyMouseMove(e){
+            mapView.mousemoveFilter(e, mapView.highlightCounty);
+        },
+        mousemoveFilter(e, fn){
+            if ( !mapView.mousemoveActive || mapView.mousemoveActive !== e.features[0].id ){
+                mapView.mousemoveActive = e.features[0].id;
+                fn(e);
+            }
+        },
+        highlightCounty(e) {
+            var map = mapView.maps[getState('activeMap')];
+            map.setFilter("counties-hover", ["==", "FIPS", e.features[0].properties.FIPS]);
+            mapView.showMessage('&nbsp;Right click to hold selection&nbsp;');
+            Promise.all([controller.promises.dictionary, controller.promises['countyDetails']]).then((values) =>{
+              sidebarView.handleCharts(values, e.features[0].properties.FIPS );
+            });  
+        },
+        countyMouseLeave(){
+            mapView.maps[getState('activeMap')].setFilter("counties-hover", ["==", "FIPS", ""]);
+            mapView.showMessage('');
+            mapView.mousemoveActive = null;
+            sidebarView.getStateDetails('activeStateFP', getState('activeStateFP'));
         }
     };
 
@@ -1160,6 +1204,7 @@
 
     var setState = controller.controlState.setState,
         getState = controller.controlState.getState,
+        logState = controller.controlState.logState,
         getPreviousState = controller.controlState.getPreviousState;
 
     var setSubs = controller.controlSubs.setSubs,
