@@ -2,8 +2,17 @@ module.exports = function(grunt){
     require("matchdep").filterDev("grunt-*").forEach(grunt.loadNpmTasks);
     grunt.initConfig({
         pkg: grunt.file.readJSON('package.json'),
+
+        copy: { //build
+          build: {
+            cwd: '_dev',
+            src: [ '**/*.*', '!css/**/*.*', '!_*/**/*.*'], // css copy is handled by postcss
+            dest: '',
+            expand: true
+          }
+        },
        
-        htmlhint: {
+        htmlhint: { // watch
             index: {
                 options: {
                     'tag-pair': true,
@@ -20,7 +29,7 @@ module.exports = function(grunt){
                 src: ['_dev/index.html']
             }
         },
-        jshint: {
+        jshint: { //watch
             options: {
                 
               curly: true,
@@ -47,11 +56,11 @@ module.exports = function(grunt){
             }
 
         },
-        browserify: {
+        browserify: { //build
             dist: {
                 files: {
                     // destination for transpiled js : source js
-                    'js/index.js': '_dev/js/index.js'
+                    'js/index.js': 'js/index.js'
                 },
                 options: {
                     transform: [['babelify', { presets: "env" }]],
@@ -61,10 +70,10 @@ module.exports = function(grunt){
                 }
             }
         },
-        uglify: {
+        uglify: { // build
             options: {
               mangle: {
-                reserved: ['d3']
+                reserved: ['d3','mapboxgl','PubSub']
               },
               compress: {
                 drop_console: true
@@ -72,9 +81,9 @@ module.exports = function(grunt){
             },
             min: {
                 files: grunt.file.expandMapping(['*.js','!min.js'], 'js/', {
-                    cwd: '_dev/js',
+                    cwd: 'js',
                     rename: function(destBase, destPath) {
-                        return destBase+destPath.replace('.js', '.min.js'); 
+                        return destBase+destPath.replace('.js', '.js'); 
                     }
                 }),
                 options: {
@@ -82,7 +91,7 @@ module.exports = function(grunt){
                 }
             }
         },
-        sass: {
+        sass: { //watch
             build: {
                 files: grunt.file.expandMapping(['_dev/css/*.scss'], '', {
                     rename: function(destBase, destPath) {
@@ -91,14 +100,14 @@ module.exports = function(grunt){
                 })
             }
         },
-        cssmin: {
+        cssmin: { // build
             build: {
                 files: [{
                   expand: true,
-                  cwd: '_dev/css',
+                  cwd: 'css',
                   src: ['*.css', '!*.min.css'],
                   dest: 'css/',
-                  ext: '.min.css'
+                  ext: '.css'
                 }]
             }
         },
@@ -117,7 +126,7 @@ module.exports = function(grunt){
             }
         },
         
-        postcss: {
+        postcss: { // build
             options: {
                  processors: [
                     require('postcss-import')(),
@@ -132,5 +141,10 @@ module.exports = function(grunt){
     });
 
     grunt.registerTask('default', []);
+    grunt.registerTask(
+      'build', 
+      'Copies specified _dev files files to the root directory.', 
+      [ 'copy', 'browserify', 'postcss', 'uglify', 'cssmin' ]
+    );
 
 };

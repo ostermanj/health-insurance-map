@@ -1,0 +1,76 @@
+<!DOCTYPE html> 
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>ACS Map</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.10.0/d3.min.js"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script><!-- https://github.com/d3/d3-scale-chromatic -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v0.41.0/mapbox-gl.js"></script>
+    <script src="js/PubSub.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v0.41.0/mapbox-gl.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700" rel="stylesheet" />
+    <link href="css/index.css" rel="stylesheet" />
+</head>
+<body>
+    <!-- Google Tag Manager -->
+<noscript><iframe src="//www.googletagmanager.com/ns.html?id=GTM-NLPGT8"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'//www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-NLPGT8');</script>
+<!-- End Google Tag Manager -->
+<div id="content-wrapper" class="flex no-wrap">
+    <div id="sidebar">
+        <div id="sidebar-top" class="sidebar-section load flex no-wrap">
+            <div id="sidebar-top-left" class="margins grow-1">
+                <h1>Health Insurance in America</h1>
+                <p>2011&ndash;15 American Community Survey 5-Year Estimates</p>
+            </div>
+            <div id="legend" class="margins"></div>
+        </div>
+        <div id="dropdown-div" class="sidebar-section load">
+            <h2 class="margins">Health insurance coverage by type</h2>
+            <label id="state-label" for="state-selector" class="visuallyhidden">Select state</label>
+            <select id="state-selector">
+                <option selected value="null">United States</option>
+            </select>
+        </div>
+        <div id="sidebar-bottom" class="sidebar-section margins load load-finished relative">
+            <p id="county-label">&nbsp;</p>
+            <div id="sidebar-charts"></div>
+            <div id="sidebar-definitions">
+                <div id="left"></div>
+                <div id="right"></div>
+            </div>
+        </div>
+    </div>
+    <div id="map-view-wrapper" class="relative">
+        <div id="message"></div>
+        <div id="map-view" class="flex flex-column grow-1">
+            <div id="map-0-wrapper" class="map-wrapper lower48">
+                <div id="map-0" class="map-container">
+                    <div class="load load-overlay"></div>
+                </div>
+            </div>
+            <div id="lower-map-wrapper" class="flex space-between">
+                <div id="map-1-wrapper" class="map-wrapper alaska">
+                    <div id="map-1" class="map-container">
+                        <div class="load load-overlay"></div>
+                    </div>
+                </div>
+                <div id="map-2-wrapper" class="map-wrapper hawaii">
+                    <div id="map-2" class="map-container">
+                        <div class="load load-overlay"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="js/index.js"></script>
+</body>
+</html>
