@@ -1,5 +1,6 @@
 # Health Insurance in America
 
+Live site: [osterman.io/health-insurance-map/](http://osterman.io/health-insurance-map/)
 This is a tool for visualizing US Census 2011–15 American Community Survey (ACS) estimates of health insurance coverage across the country.
 
 ## Some details
