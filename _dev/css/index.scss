@@ -3,9 +3,8 @@
     padding:0;
     box-sizing: border-box;
 
-}
- 
-body {
+} 
+ body {
     font-family: 'Roboto Condensed', sans-serif;
 }
 
@@ -161,7 +160,7 @@ h2 {
     height: 2em;
     outline: none;
     background-color: #fff;
-    background-image: url(/assets/triangle-down.svg);
+    background-image: url(../assets/triangle-down.svg);
     background-repeat: no-repeat;
     background-position: 97% 50%;
     text-indent: 10px;

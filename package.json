@@ -11,6 +11,7 @@
     "grunt": "^0.4.5",
     "grunt-autoprefixer": "*",
     "grunt-browserify": "^5.2.0",
+    "grunt-contrib-concat": "^1.0.1",
     "grunt-contrib-copy": "^1.0.0",
     "grunt-contrib-cssmin": "*",
     "grunt-contrib-jshint": "*",
@@ -19,7 +20,9 @@
     "grunt-contrib-watch": "^1.0.0",
     "grunt-cssc": "*",
     "grunt-htmlhint": "*",
+    "grunt-import-js": "^0.1.4",
     "grunt-postcss": "^0.8.0",
+    "grunt-processhtml": "^0.4.1",
     "htmlhint": "^0.9.13",
     "matchdep": "*",
     "postcss-import": "^11.0.0"

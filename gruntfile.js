@@ -6,12 +6,24 @@ module.exports = function(grunt){
         copy: { //build
           build: {
             cwd: '_dev',
-            src: [ '**/*.*', '!css/**/*.*', '!_*/**/*.*'], // css copy is handled by postcss
+            src: [ '**/*.*', '!css/**/*.*', '!_*/**/*.*', '!js/**/*.es6'], // css copy is handled by postcss
             dest: '',
             expand: true
           }
         },
-       
+        concat: {
+          dist: {
+            src: ['_dev/_vendor/js/*.js', 'js/index.js'],
+            dest: 'js/index.js',
+          },
+        },
+        processhtml: {
+          dist: {
+            files: {
+              'index.html': ['index.html']
+            }
+          }
+        },
         htmlhint: { // watch
             index: {
                 options: {
@@ -144,7 +156,7 @@ module.exports = function(grunt){
     grunt.registerTask(
       'build', 
       'Copies specified _dev files files to the root directory.', 
-      [ 'copy', 'browserify', 'postcss', 'uglify', 'cssmin' ]
+      [ 'copy', 'browserify', 'postcss', 'cssmin', 'concat', 'processhtml', 'uglify' ]
     );
 
 };
