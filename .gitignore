@@ -1,1 +1,4 @@
-resources/
+.DS_Store
+.sass-cache
+node_modules/
+dev/resources/
