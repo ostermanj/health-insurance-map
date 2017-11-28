@@ -109,11 +109,11 @@ module.exports = function(grunt){
             },
             js: {
                 files: ['_dev/js/*.js'],
-                tasks: ['jshint','browserify']
+                tasks: ['jshint']
             },
             scss: {
                 files: ['_dev/css/*.scss'], 
-                tasks: ['sass','postcss']
+                tasks: ['sass']
             }
         },
         
