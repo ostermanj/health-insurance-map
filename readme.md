@@ -1,3 +1,5 @@
+![image of the live site](/assets/cover.png "Image of the live site")
+
 # Health Insurance in America
 
 Live site: [osterman.io/health-insurance-map/](http://osterman.io/health-insurance-map/)
